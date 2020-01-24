@@ -28,8 +28,10 @@
 #define LOGDVBAPIVERSION DVBAPIVERSION
 #endif
 
+#ifndef GXAPI
 #if DVBAPIVERSION < 0x0500
 #error minisatip requires Linux DVB driver API version 5.0 or higher!
+#endif
 #endif
 
 #ifdef DISABLE_LINUXDVB

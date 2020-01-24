@@ -44,7 +44,11 @@
 
 #define DEFAULT_LOG LOG_DVB
 
+#ifdef GXAPI
+#define DEV_FRONTEND "/dev/dvb%d.frontend%d"
+#else
 #define DEV_FRONTEND "/dev/dvb/adapter%d/frontend%d"
+#endif
 #define DEV_DEMUX "/dev/dvb/adapter%d/demux%d"
 #define DEV_DVR "/dev/dvb/adapter%d/dvr%d"
 
