@@ -5,8 +5,6 @@
 #define NULL 0
 #endif
 
-#define CRYSTAL_FREQ 27000000  /* HZ */
-
 /*
  * GX_MIN()/GX_MAX() macros that also do strict
  * type-checking. See the pointer comparison
@@ -36,12 +34,12 @@ typedef enum  gxav_chip_id {
 	GXAV_ID_GX3201 = 0x3201,
 	GXAV_ID_GX3113C = 0x6131,
 	GXAV_ID_GX6605S = 0x6605,
-}GxAvChipId;
+} GxAvChipId;
 
 typedef enum {
 	GXAV_SDC_READ,
 	GXAV_SDC_WRITE
-}GxAvSdcOPMode;
+} GxAvSdcOPMode;
 
 typedef enum gxav_module_type {
 	GXAV_MOD_SDC           = 0x0000,
@@ -165,10 +163,5 @@ typedef enum {
 	EDID_AUDIO_AC3      = (1<<1),
 	EDID_AUDIO_EAC3     = (1<<2),
 } GxAvHdmiEdid;
-
-#define CHIP_IS_GX3201  (gxcore_chip_probe() == GXAV_ID_GX3201)
-#define CHIP_IS_GX3211  (gxcore_chip_probe() == GXAV_ID_GX3211)
-#define CHIP_IS_GX3113C (gxcore_chip_probe() == GXAV_ID_GX3113C)
-#define CHIP_IS_GX6605S (gxcore_chip_probe() == GXAV_ID_GX6605S)
 
 #endif

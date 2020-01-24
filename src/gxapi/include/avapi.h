@@ -11,9 +11,9 @@ extern "C"{
 #include <string.h>
 #include <unistd.h>
 
-#include "gxav_common.h"
-#include "gxtype.h"
-#include "gxcore_version.h"
+#include <gxav_common.h>
+#include <gxtype.h>
+#include <gxcore_version.h>
 
 #define MAX_DECODERS 32
 

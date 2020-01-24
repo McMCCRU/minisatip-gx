@@ -31,12 +31,23 @@ typedef uint8_t (*Dvb_delsys)(int aid, int fd,
 
 #define MAX_DELSYS 10
 
+#ifdef GXAPI
+#include <avapi.h>
+#include <gxav_module_property.h>
+#include <gxav_demux_propertytypes.h>
+#include <gxav_event_type.h>
+#endif
+
 typedef struct struct_adapter
 {
 	char enabled;
 	SMutex mutex;
 	char type; // available on the system
 	int fe, dmx, dvr;
+#ifdef GXAPI
+	int ret_prop;
+	int module;
+#endif
 	int pa, fn;
 	// flags
 
@@ -87,7 +98,7 @@ typedef struct struct_adapter
 	char drop_encrypted;
 #ifndef DISABLE_PMT
 	int transponder_id,
-		pat_ver, pat_filter, sdt_filter;
+	pat_ver, pat_filter, sdt_filter;
 #endif
 #ifdef AXE
 	int fe2;

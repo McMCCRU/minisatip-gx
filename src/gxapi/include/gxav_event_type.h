@@ -60,5 +60,4 @@
 #define EVENT_ICAM_OTHER_RESERV1        (0x00000040)
 #define EVENT_ICAM_OTHER_RESERV2        (0x00000080)
 
-
 #endif /* _GXAV_EVENT_TYPE_H_ */

@@ -48,9 +48,9 @@
 #define DEV_FRONTEND "/dev/dvb%d.frontend%d"
 #else
 #define DEV_FRONTEND "/dev/dvb/adapter%d/frontend%d"
-#endif
 #define DEV_DEMUX "/dev/dvb/adapter%d/demux%d"
 #define DEV_DVR "/dev/dvb/adapter%d/dvr%d"
+#endif
 
 #ifdef ENIGMA
 #ifndef DMX_SET_SOURCE
@@ -379,6 +379,7 @@ struct diseqc_cmd
 	uint32_t wait;
 };
 
+#ifndef GXAPI
 // based on enigma2 fbc.cpp, setProcData
 void set_proc_data(int adapter, char *name, int val)
 {
@@ -396,10 +397,29 @@ void set_proc_data(int adapter, char *name, int val)
 		LOG("setProcData open failed, %s: %m", filename);
 	}
 }
+#endif
 
 void dvb_set_demux_source(adapter *ad)
 {
-#ifdef DMX_SET_SOURCE
+#ifdef GXAPI
+	GxDemuxProperty_ConfigDemux demux = { 0 };
+
+	demux.source = DEMUX_TS1;
+	demux.ts_select = FRONTEND;
+	demux.stream_mode = DEMUX_PARALLEL;
+	demux.time_gate = 0xf;
+	demux.byt_cnt_err_gate = 0x03;
+	demux.sync_loss_gate = 0x03;
+	demux.sync_lock_gate = 0x03;
+
+	ad->ret_prop = GxAVSetProperty(ad->dvr, ad->module, GxDemuxPropertyID_Config, &demux, sizeof(GxDemuxProperty_ConfigDemux));
+	if(ad->ret_prop < 0)
+	{
+		LOG("GXAPI: [%s] Not set property....", __FUNCTION__);
+		GxAVCloseModule(ad->dvr, ad->module);
+		GxAVDestroyDevice(ad->dvr);
+	}
+#elif defined(DMX_SET_SOURCE)
 	if (ad->dmx_source >= 0)
 	{
 		char buf[255];
@@ -424,17 +444,23 @@ void dvb_set_demux_source(adapter *ad)
 int dvb_open_device(adapter *ad)
 {
 	char buf[100];
+#ifndef GXAPI
 	int use_demux = opts.use_demux_device == USE_DEMUX || opts.use_demux_device == USE_PES_FILTERS_AND_DEMUX;
+#endif
 	LOG("trying to open [%d] adapter %d and frontend %d", ad->id, ad->pa,
 		ad->fn);
 	sprintf(buf, DEV_FRONTEND, ad->pa, ad->fn);
 	ad->fe = open(buf, O_RDWR | O_NONBLOCK);
+#ifndef GXAPI
 	if (use_demux)
 		sprintf(buf, DEV_DEMUX, ad->pa, ad->fn);
 	else
 		sprintf(buf, DEV_DVR, ad->pa, ad->fn);
 
 	ad->dvr = open(buf, use_demux ? O_RDWR | O_NONBLOCK : O_RDONLY | O_NONBLOCK);
+#else
+	ad->dvr = GxAVCreateDevice(0);
+#endif
 	if (ad->fe < 0 || ad->dvr < 0)
 	{
 		sprintf(buf, DEV_FRONTEND, ad->pa, ad->fn);
@@ -443,13 +469,18 @@ int dvb_open_device(adapter *ad)
 		if (ad->fe >= 0)
 			close(ad->fe);
 		if (ad->dvr >= 0)
+#ifdef GXAPI
+			GxAVDestroyDevice(ad->dvr);
+#else
 			close(ad->dvr);
+#endif
 		ad->fe = ad->dvr = -1;
 		return 1;
 	}
 	ad->type = ADAPTER_DVB;
 	ad->dmx = -1;
 	LOG("opened DVB adapter %d fe:%d dvr:%d", ad->id, ad->fe, ad->dvr);
+#ifndef GXAPI
 	if (ioctl(ad->dvr, DMX_SET_BUFFER_SIZE, opts.dvr_buffer) < 0)
 		LOG("couldn't set DVR buffer size error %d: %s", errno, strerror(errno))
 	else
@@ -470,8 +501,24 @@ int dvb_open_device(adapter *ad)
 			set_proc_data(ad->fn, "fbc_connect", ad->fn);
 		}
 	}
+#else
+	LOG("GXAPI: Chip detected %04X", GxChipDetect(ad->dvr));
+	ad->module = GxAVOpenModule(ad->dvr, GXAV_MOD_DEMUX, 0);
+	if(ad->module < 0)
+	{
+		LOG("GXAPI: [%s] Not start DEMUX module....", __FUNCTION__);
+		GxAVDestroyDevice(ad->dvr);
+		if (ad->fe >= 0)
+			close(ad->fe);
+		return 1;
+	}
+	ad->ret_prop = -1;
+#endif
 	dvb_set_demux_source(ad);
-
+#ifdef GXAPI
+	if(ad->ret_prop < 0)
+		return 1;
+#endif
 	return 0;
 }
 
@@ -1039,8 +1086,9 @@ int dvb_tune(int aid, transponder *tp)
 
 int dvb_set_pid(adapter *a, int i_pid)
 {
+	int fd = -1;
+#ifndef GXAPI
 	char buf[100];
-	int fd;
 	int hw, ad;
 
 	hw = a->pa;
@@ -1080,12 +1128,13 @@ int dvb_set_pid(adapter *a, int i_pid)
 	SPid *p = find_pid(a->id, i_pid);
 	if (p)
 		p->sock = -1;
-
+#endif
 	return fd;
 }
 
 int dvb_del_filters(adapter *ad, int fd, int pid)
 {
+#ifndef GXAPI
 	if (fd < 0)
 		LOG_AND_RETURN(0, "DMX_STOP on an invalid handle %d, pid %d", fd, pid);
 	if (ioctl(fd, DMX_STOP, NULL) < 0)
@@ -1103,11 +1152,12 @@ int dvb_del_filters(adapter *ad, int fd, int pid)
 	}
 	else
 		close(fd);
+#endif
 	return 0;
 }
 
 // useful on devices where DVR is not used
-
+#ifndef GXAPI
 int dvb_demux_set_pid(adapter *a, int i_pid)
 {
 	int fd = a->dvr;
@@ -1316,6 +1366,7 @@ int dvb_del_psi_filters(adapter *ad, int fd, int pid)
 		rv = dvb_demux_del_filters(ad, fd, pid);
 	return rv;
 }
+#endif /* !GXAPI */
 
 fe_delivery_system_t dvb_delsys(int aid, int fd, fe_delivery_system_t *sys)
 {
@@ -1615,6 +1666,7 @@ void find_dvb_adapter(adapter **a)
 			if (!access(buf, R_OK))
 				cnt++;
 
+#ifndef GXAPI
 			sprintf(buf, DEV_DEMUX, i, j);
 			if (!access(buf, R_OK))
 				cnt++;
@@ -1624,6 +1676,13 @@ void find_dvb_adapter(adapter **a)
 				cnt++;
 
 			if (cnt == 3)
+#else
+			sprintf(buf, "/dev/gxav%d", j);
+			if (!access(buf, R_OK))
+				cnt++;
+
+			if (cnt == 2)
+#endif
 			{
 				//				if (is_adapter_disabled(na))
 				//				{
@@ -1639,6 +1698,7 @@ void find_dvb_adapter(adapter **a)
 				ad->fn = j;
 
 				ad->open = (Open_device)dvb_open_device;
+#ifndef GXAPI
 				if (opts.use_demux_device == USE_DVR)
 				{
 					ad->set_pid = (Set_pid)dvb_set_pid;
@@ -1654,7 +1714,10 @@ void find_dvb_adapter(adapter **a)
 					ad->set_pid = (Set_pid)dvb_set_psi_pes_filter;
 					ad->del_filters = (Del_filters)dvb_del_psi_filters;
 				}
-
+#else
+				ad->set_pid = (Set_pid)dvb_set_pid;
+				ad->del_filters = (Del_filters)dvb_del_filters;
+#endif
 				ad->commit = (Adapter_commit)dvb_commit;
 				ad->tune = (Tune)dvb_tune;
 				ad->delsys = (Dvb_delsys)dvb_delsys;
@@ -1663,13 +1726,14 @@ void find_dvb_adapter(adapter **a)
 				ad->get_signal = (Device_signal)dvb_get_signal;
 				ad->type = ADAPTER_DVB;
 
+#ifndef GXAPI
 				if (ad->pa == 0)
 				{
 					sprintf(buf, "/proc/stb/frontend/%d/fbc_connect", ad->fn);
 					if (!access(buf, W_OK))
 						ad->is_fbc = 1;
 				}
-
+#endif
 				na++;
 				a_count = na; // update adapter counter
 				if (na == MAX_ADAPTERS)

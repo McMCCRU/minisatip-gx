@@ -38,7 +38,7 @@ enum dmx_ts_select {
 	OTHER
 };
 
-enum dmx_input {
+enum dmx__input {
 	DEMUX_TS1,
 	DEMUX_TS2,
 	DEMUX_TS3,

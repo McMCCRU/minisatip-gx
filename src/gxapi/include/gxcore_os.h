@@ -31,7 +31,7 @@
 #define GXCORE_PEND   (0)
 #define GXCORE_CHECK (-1)
 
-#include "gxtype.h"
+#include <gxtype.h>
 /* Include the OS API modules */
 
 #endif

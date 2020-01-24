@@ -1,9 +1,9 @@
 #ifndef _GXAV_IOCTL_H_
 #define _GXAV_IOCTL_H_
 
-#include "gxav_common.h"
-#include "gxav_hdcp_key.h"
-#include "gxav_module_property.h"
+#include <gxav_common.h>
+#include <gxav_hdcp_key.h>
+#include <gxav_module_property.h>
 
 #ifdef __cplusplus
 extern "C"{
@@ -161,11 +161,11 @@ typedef struct gxav_fifo_link    GxAvIOCTL_FifoUnlink;
 typedef struct gxav_kmalloc      GxAvIOCTL_KMalloc;
 typedef struct gxav_kmalloc      GxAvIOCTL_KFree;
 
-typedef struct gxav_chip_detect  GxAvIOCTL_ChipDetect;
+typedef struct gxav_chip_detect       GxAvIOCTL_ChipDetect;
 typedef struct gxav_codec_register    GxAvIOCTL_CodecRegister;
 typedef struct gxav_hdcpkey_register  GxAvIOCTL_HdcpKeyRegister;
-typedef struct gxav_fb_info  GxAvIOCTL_FBGetInfo;
-typedef struct gxav_sync_params GxAvIOCTL_SyncParams;
+typedef struct gxav_fb_info           GxAvIOCTL_FBGetInfo;
+typedef struct gxav_sync_params       GxAvIOCTL_SyncParams;
 
 #ifdef __cplusplus
 }

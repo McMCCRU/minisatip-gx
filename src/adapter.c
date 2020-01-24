@@ -262,6 +262,10 @@ int init_hw(int i)
 	ad->sock = -1;
 	ad->force_close = 0;
 	ad->restart_needed = 0;
+#ifdef GXAPI
+	ad->ret_prop = -1;
+	ad->module = -1;
+#endif
 
 	if (opts.max_pids)
 		ad->max_pids = opts.max_pids;
@@ -445,6 +449,13 @@ int close_adapter(int na)
 	mark_pids_deleted(na, -1, NULL);
 	update_pids(na);
 	//      if(ad->dmx>0)close(ad->dmx);
+#ifdef GXAPI
+	if(ad->module > 0)
+		GxAVCloseModule(ad->dvr, ad->module);
+	if(ad->dvr > 0)
+		GxAVDestroyDevice(ad->dvr);
+	ad->module = -1;
+#endif
 	if (ad->fe > 0)
 		close(ad->fe);
 #ifndef DISABLE_PMT
