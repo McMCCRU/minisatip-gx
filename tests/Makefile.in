@@ -1,0 +1,58 @@
+
+AUTOMAKE_OPTIONS = foreign
+BUILDDIR := ../build
+
+CFLAGS?=-Wall -Wno-switch -ggdb -fPIC $(EXTRA_CFLAGS)
+LDFLAGS?=-lpthread 
+
+OS := $(shell $(CC) -v 2>&1 | grep Target | sed 's/Target: //' | cut -d- -f 2)
+ARCH := $(shell $(CC) -v 2>&1 | grep Target | sed 's/Target: //' | cut -d- -f 1)
+
+ifneq ($(UNAME_S),apple)
+        LDFLAGS += -lrt
+else
+	LINUXDVB=0
+endif
+
+SOURCES=test_pmt.c test_ddci.c test_utils.c test_socketworks.c
+
+TABLES=0
+PMT=0
+
+LIBS+=crypto dl pthread
+LIBS+=dvbcsa
+LIBS+=dvben50221 dvbapi ucsi
+CFLAGS += -DAXE
+#CFLAGS += -fsanitize=address -fno-omit-frame-pointer -fsanitize=leak -fsanitize=null
+CFLAGS += -I../src
+
+CFLAGS += -DENIGMA
+CFLAGS += -DTESTING
+CFLAGS += -DDDCI_TEST
+CFLAGS += -DDISABLE_NETCVCLIENT
+
+LDFLAGS+=$(addprefix -l,$(LIBS))
+
+BINS := $(patsubst %.c, $(BUILDDIR)/%, $(SOURCES))
+
+test: $(BINS)
+	@echo "Tests completed successfully"
+
+$(BUILDDIR)/%.d : %.c
+	@mkdir -p $(BUILDDIR)
+	@$(CC) $(CFLAGS) -MM $(basename $*).c | sed -e 's@^\(.*\)\.o:@\1.d \1.o:@' > $@
+
+$(BUILDDIR)/% : %.c
+	@mkdir -p $(BUILDDIR)
+	$(CC) $(CFLAGS) $*.c ../src/*c -o $(BUILDDIR)/test $(LDFLAGS)
+	@echo "Running $@"
+	@$(BUILDDIR)/test
+	@rm -f $(BUILDDIR)/test
+
+clean:
+	rm -rf $(BUILDDIR) $(TARGET) >> /dev/null
+
+# pull in dependency info for *existing* .o files
+ifneq "$(MAKECMDGOALS)" "clean"
+-include $(DEPS)
+endif
