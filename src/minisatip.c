@@ -590,7 +590,7 @@ void set_options(int argc, char *argv[])
 	opts.max_pids = 20; // allow oscam to use couple of pids as well
 #endif
 
-#if defined(NO_BACKTRACE) || defined(GXAPI)
+#if defined(NO_BACKTRACE)
 	opts.no_threads = 1;
 #endif
 #ifdef AXE
@@ -599,6 +599,10 @@ void set_options(int argc, char *argv[])
 #define AXE_OPTS "7:QW:8:A:"
 #else
 #define AXE_OPTS ""
+#ifdef GXAPI
+	opts.no_threads = 1;
+	opts.document_root = "/usr/share/minisatip/html";
+#endif
 
 #endif
 

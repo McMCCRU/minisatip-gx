@@ -139,7 +139,7 @@ CFLAGS-$(DEBUG) += -fsanitize=address -fno-omit-frame-pointer -fsanitize=leak -f
 
 
 ifeq ($(STATIC),1)
-LDFLAGS+=$(addsuffix .a,$(addprefix -l:lib,$(LIBS)))
+LDFLAGS+=$(addsuffix .a,$(addprefix -l:lib,$(LIBS))) -static
 else
 LDFLAGS+=$(addprefix -l,$(LIBS))
 endif
