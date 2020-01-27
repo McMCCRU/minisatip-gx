@@ -1,0 +1,143 @@
+
+
+Introduction
+============
+
+libdvbcsa is a free and portable implementation of the DVB Common
+Scrambling algorithm with decryption and encryption capabilities.
+
+It comes in two flavors: a classical single packet implementation and
+a faster parallel bitslice implementation.
+
+
+Installation
+============
+
+Some configuration options are available to tune performance of the
+parallel implementation. See INSTALL.
+
+
+Algorithm overview
+==================
+
+The DVB CSA is composed of a two distinct ciphers which are applied to
+scrambled content data packets. The block cipher and the stream cipher
+both use the same 64 bits key. This key is called a control word.
+
+
+Classical implementation API
+============================
+
+The classical implementation can process a single packet on each
+function call. It is the slowest implementation and must be used when
+data packets are not available as a large batch at the same time.
+
+This implementation average processing bitrate is between 20 Mbits/s
+and 50 Mbits/s on modern PCs.
+
+    #include <dvbcsa/dvbcsa.h>
+
+Two functions are available to allocate and free expanded key context:
+
+    struct dvbcsa_key_s * dvbcsa_key_alloc();
+    void dvbcsa_key_free(struct dvbcsa_key_s *key);
+
+The control word can be changed as needed using this function:
+
+    void dvbcsa_key_set (const dvbcsa_cw_t cw,
+                         struct dvbcsa_key_s *key);
+
+Data encryption and decryption is done with these functions:
+
+     void dvbcsa_decrypt (const struct dvbcsa_key_s *key,
+     	  	          unsigned char *data, unsigned int len);
+
+     void dvbcsa_encrypt (const struct dvbcsa_key_s *key,
+                          unsigned char *data, unsigned int len);
+
+
+Parallel implementation API
+===========================
+
+The parallel implementation is faster but data packets need to be
+batched together.
+
+This implementation average processing bitrate is between 80 Mbits/s
+and 200 Mbits/s on modern PCs. Performance heavily depends on bitslice
+word width used, see install section.
+
+    #include <dvbcsa/dvbcsa.h>
+
+Two functions are available to allocate and free expanded key context:
+
+    struct dvbcsa_bs_key_s * dvbcsa_bs_key_alloc();
+
+    void dvbcsa_bs_key_free(struct dvbcsa_bs_key_s *key);
+
+The control word can be changed as needed using this function:
+
+    void dvbcsa_bs_key_set(const dvbcsa_cw_t cw,
+                           struct dvbcsa_bs_key_s *key);
+
+Packet batch must be available as an array of struct dvbcsa_bs_batch_s
+to invoke encryption or decryption functions.
+
+    struct dvbcsa_bs_batch_s
+    {
+      unsigned char		*data;	/* pointer to payload */
+      unsigned int		len;	/* payload bytes lenght */
+    };
+
+The array must not be greater than the maximum batch size returned by:
+
+    unsigned int dvbcsa_bs_batch_size(void);
+
+An extra entry  with NULL data pointer must be  added to terminate the
+array. Arrays with less entries  than the maximum batch size will take
+the _same_ time to process as a full batch array.
+
+An additional maximum packet lenght  parameter must be provided to the
+processing  functions. Packet  greater than  this limit  will  only be
+partially  processed. It  must  be  a multiple  of  8. This  parameter
+directly  control algorithm  cycles  count (and  processing time)  and
+should be  kept as low as  possible. When processing  Mpeg TS packets,
+it should be 184.
+
+Encryption and decryption batch processing functions are:
+
+    void dvbcsa_bs_decrypt(const struct dvbcsa_bs_key_s *key,
+		           const struct dvbcsa_bs_batch_s *pcks,
+		           unsigned int maxlen);
+
+    void dvbcsa_bs_encrypt(const struct dvbcsa_bs_key_s *key,
+		           const struct dvbcsa_bs_batch_s *pcks,
+		           unsigned int maxlen);
+
+Example:
+
+    int i, s = dvbcsa_bs_batch_size();
+    struct dvbcsa_bs_batch_s b[s + 1];
+
+    struct dvbcsa_bs_key_s *key = dvbcsa_bs_key_alloc();
+    unsigned char cw[8] = "testtest";
+
+    dvbcsa_bs_key_set(cw, key);
+
+    for (i = 0; i < s; i++)
+      {
+        b[i].data = ... ;
+        b[i].len = ... ;
+      }
+
+    b[i].data = NULL;
+
+    dvbcsa_bs_encrypt(key, b, 184);
+
+
+Portability
+===========
+
+This library has been successfully tested on different platforms with
+32 bits and 64 bits word width, little-endian and big-endian bytes
+ordering.
+

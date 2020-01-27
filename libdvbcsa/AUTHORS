@@ -1,0 +1,12 @@
+
+The bitslice implemetation is based on the great FFdecsa package, (c)
+2003-2004 by fatih89r. It has been rewritten by Alexandre Becoulet for
+flexibility, portability and encryption capabilities.
+
+The single packet implementation has been originally written by
+Alexandre Becoulet <alexandre.becoulet@free.fr>.
+
+PowerPC Altivec support by Nicolas Pouillon <nipo@ssji.net>.
+
+Key schedule optimization by Erik Tews <e_tews at cdc.informatik.tu-darmstadt.de>
+

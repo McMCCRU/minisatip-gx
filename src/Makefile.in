@@ -58,6 +58,8 @@ endif
 
 ifeq ($(DVBCSA),1)
 LIBS+=dvbcsa
+CFLAGS+=-I../libdvbcsa/src
+LDFLAGS+=-L../libdvbcsa/src/.libs
 SOURCES+=csa.c
 PMT=1
 else
