@@ -52,15 +52,16 @@ enum fe_s2code_rate {
 	FEC_9_10,
 };
 
-enum fe_s2modulation {
-	PSK_8 = VSB_16 + 1,
-	APSK_16,
-	APSK_32,
-	DQPSK,
-};
+//enum fe_s2modulation {
+//	PSK_8 = VSB_16 + 1,
+//	APSK_16,
+//	APSK_32,
+//	DQPSK,
+//};
 
 enum fe_s2transmit_mode {
-	TRANSMISSION_MODE_1K = TRANSMISSION_MODE_4K + 1,
+	TRANSMISSION_MODE_4K = TRANSMISSION_MODE_AUTO + 1,
+	TRANSMISSION_MODE_1K,
 	TRANSMISSION_MODE_16K,
 	TRANSMISSION_MODE_32K,
 };

@@ -44,10 +44,17 @@ typedef struct struct_adapter
 	SMutex mutex;
 	char type; // available on the system
 	int fe, dmx, dvr;
+
 #ifdef GXAPI
+#define DEMUX_SLOT_MAX 64
 	int ret_prop;
 	int module;
+	GxDemuxProperty_Slot muxslot;
+	GxDemuxProperty_Filter muxfilter;
+	GxDemuxProperty_Slot slot[DEMUX_SLOT_MAX];
+	int slot_nb;
 #endif
+
 	int pa, fn;
 	// flags
 

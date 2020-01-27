@@ -21,6 +21,9 @@
 
 #ifndef DISABLE_LINUXDVB
 #include <linux/dvb/frontend.h>
+#ifdef GXAPI
+#include <s2apiwrapper.h>
+#endif
 #include <linux/dvb/dmx.h>
 #include <linux/dvb/ca.h>
 #include <linux/dvb/version.h>
@@ -34,7 +37,7 @@
 #endif
 #endif
 
-#ifdef DISABLE_LINUXDVB
+#if defined(DISABLE_LINUXDVB)
 typedef enum fe_delivery_system
 {
 	SYS_UNDEFINED,

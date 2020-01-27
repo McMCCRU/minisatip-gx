@@ -244,6 +244,9 @@ char *built_info[] =
 #ifdef AXE
 		"Built for satip-axe",
 #endif
+#ifdef GXAPI
+		"Built for GXAPI",
+#endif
 		NULL};
 
 void print_version(int use_log)
@@ -581,13 +584,13 @@ void set_options(int argc, char *argv[])
 #endif
 	opts.max_pids = 0;
 	opts.dvbapi_offset = 0; // offset for multiple dvbapi clients to the same server
-#if defined(AXE)
+#if defined(AXE) || defined(GXAPI)
 	opts.max_pids = 32;
 #elif defined(__sh__)
 	opts.max_pids = 20; // allow oscam to use couple of pids as well
 #endif
 
-#ifdef NO_BACKTRACE
+#if defined(NO_BACKTRACE) || defined(GXAPI)
 	opts.no_threads = 1;
 #endif
 #ifdef AXE

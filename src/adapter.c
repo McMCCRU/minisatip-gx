@@ -233,6 +233,9 @@ int init_hw(int i)
 	int64_t st, et;
 	adapter *ad;
 	int rv = 0;
+#ifdef GXAPI
+	int j = 0;
+#endif
 	if (i < 0 || i >= MAX_ADAPTERS)
 		return 3;
 
@@ -265,6 +268,13 @@ int init_hw(int i)
 #ifdef GXAPI
 	ad->ret_prop = -1;
 	ad->module = -1;
+	memset(&ad->muxslot, 0, sizeof(GxDemuxProperty_Slot));
+	memset(&ad->muxfilter, 0, sizeof(GxDemuxProperty_Filter));
+	ad->slot_nb = 0;
+	for(j = 0; j < DEMUX_SLOT_MAX; j++) {
+		memset(&ad->slot[i], 0, sizeof(GxDemuxProperty_Slot));
+		ad->slot[i].slot_id = -1;
+	}
 #endif
 
 	if (opts.max_pids)

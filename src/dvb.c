@@ -397,6 +397,9 @@ void set_proc_data(int adapter, char *name, int val)
 		LOG("setProcData open failed, %s: %m", filename);
 	}
 }
+#else
+#define TS_DEMUX_IN_SIZE  (188 * 1024 * 10)
+#define TS_DEMUX_IN_GATE  (188 * 30)
 #endif
 
 void dvb_set_demux_source(adapter *ad)
@@ -418,6 +421,27 @@ void dvb_set_demux_source(adapter *ad)
 		LOG("GXAPI: [%s] Not set property....", __FUNCTION__);
 		GxAVCloseModule(ad->dvr, ad->module);
 		GxAVDestroyDevice(ad->dvr);
+	}
+
+	/* special slot */
+	ad->muxslot.type = DEMUX_SLOT_MUXTS;
+	ad->muxslot.flags = (DMX_TSOUT_EN | DMX_CRC_DISABLE | DMX_REPEAT_MODE);
+	ad->ret_prop = GxAVGetProperty(ad->dvr, ad->module, GxDemuxPropertyID_SlotAlloc, &ad->muxslot, sizeof(GxDemuxProperty_Slot));
+	if (ad->ret_prop < 0)
+	{
+		LOG("GXAPI MUXTS: GxDemuxPropertyID_SlotAlloc Problem...");
+		return;
+	}
+
+	/* special filter */
+	ad->muxfilter.slot_id = ad->muxslot.slot_id;
+	ad->muxfilter.sw_buffer_size = TS_DEMUX_IN_SIZE;
+	ad->muxfilter.almost_full_gate = TS_DEMUX_IN_GATE;
+	ad->ret_prop = GxAVGetProperty(ad->dvr, ad->module, GxDemuxPropertyID_FilterAlloc, &ad->muxfilter, sizeof(GxDemuxProperty_Filter));
+	if (ad->ret_prop < 0)
+	{
+		LOG("GXAPI TS Filter: GxDemuxPropertyID_FilterAlloc Problem...");
+		return;
 	}
 #elif defined(DMX_SET_SOURCE)
 	if (ad->dmx_source >= 0)
@@ -1086,8 +1110,37 @@ int dvb_tune(int aid, transponder *tp)
 
 int dvb_set_pid(adapter *a, int i_pid)
 {
-	int fd = -1;
-#ifndef GXAPI
+	int fd = a->dvr;
+#ifdef GXAPI
+	int ret = -1;
+	SPid *p = find_pid(a->id, i_pid);
+
+	if(p) {
+		LOG("GXAPI set TS: PID=%d is found, skip...");
+		p->sock = -1;
+		return fd;
+	}
+
+	if(a->slot_nb >= DEMUX_SLOT_MAX)
+		LOG_AND_RETURN(-1, "GXAPI set TS: Demux slots full...");
+
+	a->slot[a->slot_nb].type = DEMUX_SLOT_TS;
+	a->slot[a->slot_nb].flags = (DMX_REPEAT_MODE | DMX_TSOUT_EN | DMX_CRC_DISABLE);
+	a->slot[a->slot_nb].ts_out_pin = a->muxslot.slot_id;
+	a->slot[a->slot_nb].pid = i_pid;
+
+	ret = GxAVGetProperty(a->dvr, a->module, GxDemuxPropertyID_SlotAlloc, &a->slot[a->slot_nb] ,sizeof(GxDemuxProperty_Slot));
+	if (ret < 0)
+		LOG_AND_RETURN(-1, "GXAPI set TS: GxDemuxPropertyID_SlotAlloc Problem...");
+	ret = GxAVGetProperty(a->dvr, a->module, GxDemuxPropertyID_SlotConfig, &a->slot[a->slot_nb] ,sizeof(GxDemuxProperty_Slot));
+	if (ret < 0)
+		LOG_AND_RETURN(-1, "GXAPI set TS: GxDemuxPropertyID_SlotConfig Problem...");
+	ret = GxAVGetProperty(a->dvr, a->module, GxDemuxPropertyID_SlotEnable, &a->slot[a->slot_nb] ,sizeof(GxDemuxProperty_Slot));
+	if (ret < 0)
+		LOG_AND_RETURN(-1, "GXAPI set TS: GxDemuxPropertyID_SlotEnable Problem...");
+
+	a->slot_nb++;
+#else
 	char buf[100];
 	int hw, ad;
 
@@ -1132,16 +1185,41 @@ int dvb_set_pid(adapter *a, int i_pid)
 	return fd;
 }
 
+#ifdef GXAPI
+static int find_slot(adapter *ad, int pid)
+{
+	int i;
+
+	for (i = 0; i < DEMUX_SLOT_MAX; i++)
+	{
+		if((pid == ad->slot[i].pid) && (ad->slot[i].slot_id > 0))
+			return i;
+	}
+	return -1;
+}
+#endif
+
 int dvb_del_filters(adapter *ad, int fd, int pid)
 {
-#ifndef GXAPI
+#ifdef GXAPI
+	int slot_nb = find_slot(ad, pid);
+	if(slot_nb >= 0)
+	{
+		GxAVSetProperty(ad->dvr, ad->module, GxDemuxPropertyID_SlotDisable, (void*)&ad->slot[slot_nb], sizeof(GxDemuxProperty_Slot));
+		GxAVSetProperty(ad->dvr, ad->module, GxDemuxPropertyID_SlotFree, (void*)&ad->slot[slot_nb], sizeof(GxDemuxProperty_Slot));
+		memset(&ad->slot[slot_nb], 0, sizeof(GxDemuxProperty_Slot));
+		ad->slot[slot_nb].slot_id = -1;
+		ad->slot_nb--;
+		LOG("GXAPI del TS: Clearing filter on PID %d slot %d", pid, slot_nb);
+	}
+#else
 	if (fd < 0)
 		LOG_AND_RETURN(0, "DMX_STOP on an invalid handle %d, pid %d", fd, pid);
 	if (ioctl(fd, DMX_STOP, NULL) < 0)
 		LOG0("DMX_STOP failed on PID %d FD %d: error %d %s", pid, fd, errno, strerror(errno))
 	else
 		LOG("clearing filter on PID %d FD %d", pid, fd);
-
+#endif
 	SPid *p = find_pid(ad->id, pid);
 	if (!p)
 		LOG("%s: Could not find pid %d on adapter %d", __FUNCTION__, pid, ad->id);
@@ -1150,6 +1228,7 @@ int dvb_del_filters(adapter *ad, int fd, int pid)
 		sockets_force_close(p->sock);
 		p->sock = -1;
 	}
+#ifndef GXAPI
 	else
 		close(fd);
 #endif
@@ -1640,8 +1719,18 @@ void dvb_commit(adapter *a)
 
 void dvb_close(adapter *a)
 {
+#ifdef GXAPI
+	/* free special filter */
+	GxAVSetProperty(a->dvr, a->module, GxDemuxPropertyID_FilterFree, (void*)&a->muxfilter, sizeof(GxDemuxProperty_Filter));
+	/* free MUXTS slot */
+	GxAVSetProperty(a->dvr, a->module, GxDemuxPropertyID_SlotFree, (void*)&a->muxslot, sizeof(GxDemuxProperty_Slot));
+	memset(&a->muxfilter, 0, sizeof(GxDemuxProperty_Filter));
+	memset(&a->muxslot, 0, sizeof(GxDemuxProperty_Slot));
+	a->muxslot.slot_id = -1;
+#else
 	if (a->dmx >= 0)
 		close(a->dmx);
+#endif
 	a->dmx = -1;
 	return;
 }

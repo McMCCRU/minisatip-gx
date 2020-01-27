@@ -93,7 +93,7 @@ typedef struct {
 
 	enum dmx_stream_mode stream_mode;
 	enum dmx_ts_select   ts_select;
-	enum dmx_input       source;
+	enum dmx__input       source;
 } GxDemuxProperty_ConfigDemux;
 
 typedef struct {
