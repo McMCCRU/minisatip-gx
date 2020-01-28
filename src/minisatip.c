@@ -249,13 +249,19 @@ char *built_info[] =
 #endif
 		NULL};
 
+#ifdef GXAPI
+#define USE_API "dvbapi"
+#else
+#define USE_API "s2api"
+#endif
+
 void print_version(int use_log)
 {
 	char buf[200];
 	int i;
 	memset(buf, 0, sizeof(buf));
-	sprintf(buf, "%s version %s, compiled with s2api version: %04X",
-			app_name, version, LOGDVBAPIVERSION);
+	sprintf(buf, "%s version %s, compiled with %s version: %04X",
+			app_name, version, USE_API, LOGDVBAPIVERSION);
 	if (!use_log)
 		puts(buf);
 	else
@@ -584,8 +590,10 @@ void set_options(int argc, char *argv[])
 #endif
 	opts.max_pids = 0;
 	opts.dvbapi_offset = 0; // offset for multiple dvbapi clients to the same server
-#if defined(AXE) || defined(GXAPI)
+#if defined(AXE)
 	opts.max_pids = 32;
+#elif defined(GXAPI)
+	opts.max_pids = 30;
 #elif defined(__sh__)
 	opts.max_pids = 20; // allow oscam to use couple of pids as well
 #endif

@@ -49,6 +49,7 @@ typedef struct struct_adapter
 #define DEMUX_SLOT_MAX 64
 	int ret_prop;
 	int module;
+	int demux_lock;
 	GxDemuxProperty_Slot muxslot;
 	GxDemuxProperty_Filter muxfilter;
 	GxDemuxProperty_Slot slot[DEMUX_SLOT_MAX];
