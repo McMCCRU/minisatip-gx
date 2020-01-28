@@ -1226,7 +1226,8 @@ int dvb_del_filters(adapter *ad, int fd, int pid)
 		GxAVSetProperty(ad->dvr, ad->module, GxDemuxPropertyID_SlotFree, (void*)&ad->slot[slot_nb], sizeof(GxDemuxProperty_Slot));
 		memset(&ad->slot[slot_nb], 0, sizeof(GxDemuxProperty_Slot));
 		ad->slot[slot_nb].slot_id = -1;
-		ad->slot_nb--;
+		if(ad->slot_nb > 0)
+			ad->slot_nb--;
 		LOG("GXAPI del TS: Clearing filter on PID %d slot %d", pid, slot_nb);
 	}
 #endif
@@ -1488,7 +1489,9 @@ fe_delivery_system_t dvb_delsys(int aid, int fd, fe_delivery_system_t *sys)
 			if (fe_info.caps & FE_CAN_2G_MODULATION)
 				sys[idx++] = SYS_DVBT2;
 #endif
-
+#ifdef GXAPI
+			sys[idx++] = SYS_DVBT2;
+#endif
 			sys[idx++] = SYS_DVBT;
 
 			break;
@@ -1499,6 +1502,9 @@ fe_delivery_system_t dvb_delsys(int aid, int fd, fe_delivery_system_t *sys)
 #if DVBAPIVERSION >= 0x0501
 			if (fe_info.caps & FE_CAN_2G_MODULATION)
 				sys[idx++] = SYS_DVBS2;
+#endif
+#ifdef GXAPI
+			sys[idx++] = SYS_DVBS2;
 #endif
 
 			sys[idx++] = SYS_DVBS;
@@ -1715,12 +1721,31 @@ void dvb_commit(adapter *a)
 	return;
 }
 
+#ifdef GXAPI
+static void clear_all_slots(adapter *ad)
+{
+	int i, slot_en = 0;
+
+	for(i = 0; i < 0x2000; i++)
+	{
+		if(find_slot(ad, i) >= 0)
+		{
+			dvb_del_filters(ad, ad->dvr, i);
+			slot_en++;
+		}
+	}
+	if(slot_en)
+		ad->slot_nb = 0;
+}
+#endif
+
 void dvb_close(adapter *a)
 {
 #ifdef GXAPI
 	if(!a->demux_lock)
 		return;
 
+	clear_all_slots(a);
 	/* free special filter */
 	GxAVSetProperty(a->dvr, a->module, GxDemuxPropertyID_FilterFree, (void*)&a->muxfilter, sizeof(GxDemuxProperty_Filter));
 	/* free MUXTS slot */

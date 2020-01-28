@@ -254,7 +254,7 @@ static int gx_check_ts_lock(adapter *ad)
 	if(ret < 0)
 	{
 		printf("TS: GxDemuxPropertyID_TSLockQuery Problem...\n");
-		return 0;
+		LOG_AND_RETURN(0, "GXAPI TS: GxDemuxPropertyID_TSLockQuery Problem...");
 	}
 	return ((ts_lock_status.ts_lock == TS_SYNC_LOCKED) ? 1 : 0);
 }

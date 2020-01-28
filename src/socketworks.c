@@ -946,7 +946,11 @@ void *select_and_execute(void *arg)
 						else
 							err_str = strerror(err);
 
-						if (ss->type == TYPE_RTCP || ss->sock == SOCK_TIMEOUT)
+						if (ss->type == TYPE_RTCP || ss->sock == SOCK_TIMEOUT
+#ifdef GXAPI
+										|| ss->type == TYPE_DVR
+#endif
+													)
 						{
 							LOG(
 								"ignoring error on sock_id %d handle %d type %d error %d : %s",

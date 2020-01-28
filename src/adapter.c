@@ -1156,6 +1156,10 @@ int mark_pid_add(int sid, int aid, int _pid)
 	for (i = 0; i < MAX_PIDS; i++)
 		if (ad->pids[i].flags <= 0)
 		{
+#ifdef GXAPI
+			if(sid < 0)
+				continue;
+#endif
 			ad->pids[i].flags = 2;
 			ad->pids[i].pid = _pid;
 			ad->pids[i].sid[0] = sid;
