@@ -1,0 +1,5 @@
+NTV+, 36E.
+8 channel: (FTA)
+http://192.168.30.111:8080/?freq=12245&sr=27500&pol=r&msys=dvbs2&pids=0,17,18,101,201,301
+Nickelodeon: (Crypt)
+http://192.168.30.111:8080/?freq=12245&sr=27500&pol=r&msys=dvbs2&pids=0,17,18,109,209,309,409,4109,5209,6009,6209
