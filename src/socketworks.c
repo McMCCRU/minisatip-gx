@@ -759,12 +759,7 @@ __thread char thread_name[100];
 void *select_and_execute(void *arg)
 {
 	int i, rv, rlen, les, es, pos_len;
-#ifdef GXAPI
-	unsigned char buf[56401];
-#else
-	unsigned char buf[2001];
-#endif
-	unsigned char *pos;
+	unsigned char buf[2001], *pos;
 	int err;
 	struct pollfd pf[MAX_SOCKS];
 	int64_t lt, c_time;

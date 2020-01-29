@@ -1,0 +1,31 @@
+diff --git a/src/adapter.h b/src/adapter.h
+index 4d03c67..145be9f 100644
+--- a/src/adapter.h
++++ b/src/adapter.h
+@@ -46,7 +46,7 @@ typedef struct struct_adapter
+ 	int fe, dmx, dvr;
+ 
+ #ifdef GXAPI
+-#define DEMUX_SLOT_MAX 64
++#define DEMUX_SLOT_MAX 32 /* 32 - gx6605s, 64 - gx6622, gx3211... */
+ 	int ret_prop;
+ 	int module;
+ 	int demux_lock;
+diff --git a/src/socketworks.c b/src/socketworks.c
+index 6edea7f..c8c3fde 100644
+--- a/src/socketworks.c
++++ b/src/socketworks.c
+@@ -759,12 +759,7 @@ __thread char thread_name[100];
+ void *select_and_execute(void *arg)
+ {
+ 	int i, rv, rlen, les, es, pos_len;
+-#ifdef GXAPI
+-	unsigned char buf[56401];
+-#else
+-	unsigned char buf[2001];
+-#endif
+-	unsigned char *pos;
++	unsigned char buf[2001], *pos;
+ 	int err;
+ 	struct pollfd pf[MAX_SOCKS];
+ 	int64_t lt, c_time;
