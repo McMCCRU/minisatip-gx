@@ -53,7 +53,6 @@ typedef struct struct_adapter
 	GxDemuxProperty_Slot muxslot;
 	GxDemuxProperty_Filter muxfilter;
 	GxDemuxProperty_Slot slot[DEMUX_SLOT_MAX];
-	int slot_nb;
 #endif
 
 	int pa, fn;
