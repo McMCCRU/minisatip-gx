@@ -398,7 +398,7 @@ void set_proc_data(int adapter, char *name, int val)
 	}
 }
 #else
-#define TS_DEMUX_IN_GATE  (188 * 30)
+#define TS_DEMUX_IN_GATE  (188 * 200)
 #endif
 
 void dvb_set_demux_source(adapter *ad)
