@@ -608,7 +608,7 @@ void set_options(int argc, char *argv[])
 #else
 #define AXE_OPTS ""
 #ifdef GXAPI
-	opts.no_threads = 0;
+	opts.no_threads = 1;
 	opts.document_root = "/usr/share/minisatip/html";
 #endif
 
