@@ -1344,6 +1344,16 @@ int sendmmsg(int rsock, struct mmsghdr *msg, int len, int t)
 }
 #endif
 
+#ifdef GXAPI
+int gx_sendmmsg(int rsock, struct mmsghdr *msg, int len, int t)
+{
+	int i;
+	for (i = 0; i < len; i++)
+		writev(rsock, msg[i].msg_hdr.msg_iov, msg[i].msg_hdr.msg_iovlen);
+	return len;
+}
+#endif
+
 int writev_udp(int rsock, struct iovec *iov, int iiov)
 {
 	struct mmsghdr msg[1024];
@@ -1365,7 +1375,11 @@ int writev_udp(int rsock, struct iovec *iov, int iiov)
 	}
 	if (j > 0)
 		msg[j - 1].msg_hdr.msg_iovlen = i - last_i;
+#ifdef GXAPI
+	retval = gx_sendmmsg(rsock, msg, j, 0);
+#else
 	retval = sendmmsg(rsock, msg, j, 0);
+#endif
 	if (retval == -1)
 		LOG("sendmmsg(): errno %d: %s", errno, strerror(errno))
 	else if (retval != j)
