@@ -111,7 +111,9 @@ struct struct_opts
 	char disable_dvb;
 	char disable_ssdp;
 	char pmt_scan;
-#ifdef AXE
+#if defined(GXAPI)
+	int ts_config;
+#elif defined(AXE)
 	int quattro;
 	int quattro_hiband;
 	int axe_unicinp[4];

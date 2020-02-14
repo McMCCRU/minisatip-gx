@@ -412,9 +412,9 @@ void dvb_set_demux_source(adapter *ad)
 		return;
 	}
 
-	demux.source = DEMUX_TS1;
-	demux.ts_select = FRONTEND;
-	demux.stream_mode = DEMUX_PARALLEL;
+	demux.source = (opts.ts_config >> 2) & 0x03; /* DEMUX_TS1 */
+	demux.ts_select = (opts.ts_config >> 1) & 0x01; /* FRONTEND */
+	demux.stream_mode = opts.ts_config & 0x01; /* DEMUX_PARALLEL */
 	demux.time_gate = 0xf;
 	demux.byt_cnt_err_gate = 0x03;
 	demux.sync_loss_gate = 0x03;

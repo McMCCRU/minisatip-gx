@@ -166,7 +166,9 @@ static const struct option long_options[] =
 		{"xml", required_argument, NULL, 'X'},
 		{"help", no_argument, NULL, 'h'},
 		{"version", no_argument, NULL, 'V'},
-#ifdef AXE
+#if defined(GXAPI)
+		{"ts-config", required_argument, NULL, ABSOLUTE_SRC},
+#elif defined(AXE)
 		{"link-adapters", required_argument, NULL, '7'},
 		{"free-inputs", required_argument, NULL, ABSOLUTE_SRC},
 		{"quattro", no_argument, NULL, 'Q'},
@@ -488,7 +490,16 @@ Help\n\
 	* 2 - use dvrX device and additionally capture PSI data from demuxX device \n\
 	* 3 - use demuxX device and additionally capture PSI data from demuxX device \n\
 \n "
-#ifdef AXE
+#if defined(GXAPI)
+		"\
+* -A --ts-config mapping_num: set a 4-bit mask in decimal. (default: 0)\n\
+	* bit 0   - 0 - TS parallel interface, 1 - TS serial interface\n\
+	* bit 1   - select TS; 0 - FRONTEND, 1 - OTHER\n\
+	* bit 2-3 - input TS; 0 - DEMUX_TS1, 1 - DEMUX_TS2, 2 - DEMUX_TS3\n\
+	*           3 - DEMUX_SDRAM\n\
+\n\
+"
+#elif defined(AXE)
 		"\
 * -7 --link-adapters mapping_string: link adapters (identical src,lo/hi,h/v)\n\
 \t* The format is: M1:S1[,M2:S2] - master:slave\n\
@@ -601,17 +612,17 @@ void set_options(int argc, char *argv[])
 #if defined(NO_BACKTRACE)
 	opts.no_threads = 1;
 #endif
-#ifdef AXE
+#if defined(AXE)
 	opts.no_threads = 1;
 	opts.document_root = "/usr/share/minisatip/html";
 #define AXE_OPTS "7:QW:8:A:"
-#else
-#define AXE_OPTS ""
-#ifdef GXAPI
+#elif defined(GXAPI)
+	opts.ts_config = 0;
 	opts.no_threads = 1;
 	opts.document_root = "/usr/share/minisatip/html";
-#endif
-
+#define AXE_OPTS "A:"
+#else
+#define AXE_OPTS ""
 #endif
 
 	while ((opt = getopt_long(argc, argv, "fl:v:r:a:td:w:p:s:n:hB:b:H:m:p:e:x:u:j:o:gy:i:q:D:NGVR:S:TX:Y:OL:EP:Z:0:F:M:1:2:3:C:4" AXE_OPTS, long_options, NULL)) != -1)
@@ -1004,7 +1015,11 @@ void set_options(int argc, char *argv[])
 				LOG("Demux device can be 0-3 and not %d", o);
 		}
 		break;
-#ifdef AXE
+#if defined(GXAPI)
+		case ABSOLUTE_SRC:
+			opts.ts_config = atoi(optarg) & 0x0f;
+			break;
+#elif defined(AXE)
 		case LINK_OPT:
 			set_link_adapters(optarg);
 			break;
