@@ -655,7 +655,7 @@ int sockets_add(int sock, USockAddr *sa, int sid, int type,
 	ss->prio_pack.len = 0;
 	ss->read = (read_action)sockets_read;
 	ss->lock = NULL;
-	if (ss->type == TYPE_UDP || ss->type == TYPE_RTCP)
+	if (ss->type == TYPE_UDP || ss->type == TYPE_RTCP  || ss->type == TYPE_SSDP)
 		ss->read = (read_action)sockets_recv;
 	else if (ss->type == TYPE_SERVER)
 		ss->read = (read_action)sockets_accept;
@@ -933,7 +933,7 @@ void *select_and_execute(void *arg)
 					{
 						char *err_str;
 						char *types[] =
-							{"udp", "tcp", "server", "http", "rtsp", "dvr"};
+							{"udp", "tcp", "server", "http", "rtsp", "dvr", "ssdp"};
 						if (rlen == 0)
 						{
 							err = 0;
@@ -947,10 +947,7 @@ void *select_and_execute(void *arg)
 							err_str = strerror(err);
 
 						if (ss->type == TYPE_RTCP || ss->sock == SOCK_TIMEOUT
-#ifdef GXAPI
-										|| ss->type == TYPE_DVR
-#endif
-													)
+										|| ss->type == TYPE_SSDP)
 						{
 							LOG(
 								"ignoring error on sock_id %d handle %d type %d error %d : %s",
@@ -1410,7 +1407,7 @@ int my_writev(sockets *s, struct iovec *iov, int iiov)
 
 	if (s->sock > 0)
 	{
-		if (s->type == TYPE_UDP && len > 1450)
+		if ((s->type == TYPE_UDP || s->type == TYPE_SSDP) && len > 1450)
 			rv = writev_udp(s->sock, iov, iiov);
 		else
 			rv = writev(s->sock, iov, iiov);

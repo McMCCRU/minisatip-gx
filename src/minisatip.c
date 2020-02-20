@@ -1542,7 +1542,7 @@ int ssdp_notify(sockets *s, int alive)
 	sprintf(nt[1], "::uuid:%s", uuid);
 	strcpy(nt[2], "::urn:ses-com:device:SatIPServer:1");
 
-	if (s->type != TYPE_UDP)
+	if (s->type != TYPE_SSDP)
 		return 0;
 
 	LOGM("%s: bootid: %d deviceid: %d http: %s", __FUNCTION__,
@@ -1763,9 +1763,9 @@ int main(int argc, char *argv[])
 		if ((ssdp1 = udp_bind(opts.disc_host, 1900, 1)) < 1)
 			FAIL("SSDP: Could not bind on %s udp port 1900", opts.disc_host);
 
-		si = sockets_add(ssdp, NULL, -1, TYPE_UDP, (socket_action)ssdp_reply,
+		si = sockets_add(ssdp, NULL, -1, TYPE_SSDP, (socket_action)ssdp_reply,
 						 (socket_action)ssdp_byebye, (socket_action)ssdp_discovery);
-		si1 = sockets_add(ssdp1, NULL, -1, TYPE_UDP, (socket_action)ssdp_reply,
+		si1 = sockets_add(ssdp1, NULL, -1, TYPE_SSDP, (socket_action)ssdp_reply,
 						  (socket_action)ssdp_byebye, (socket_action)ssdp_discovery);
 		if (si < 0 || si1 < 0)
 			FAIL("sockets_add failed for ssdp");
