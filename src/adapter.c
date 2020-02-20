@@ -870,7 +870,7 @@ int update_pids(int aid)
 	adapter *ad;
 	ad = get_adapter(aid);
 	if (!ad || ad->updating_pids)
-		return 0;
+		return 1;
 
 	ad->updating_pids = 1;
 #ifndef DISABLE_PMT
