@@ -323,9 +323,9 @@ int init_hw(int i)
 		goto NOK;
 	}
 	memset(ad->buf, 0, opts.adapter_buffer + 1);
+	init_dvb_parameters(&ad->tp);
 	if (!ad->failed_adapter)
 	{
-		init_dvb_parameters(&ad->tp);
 		mark_pids_deleted(i, -1, NULL);
 		update_pids(i);
 	}
@@ -451,13 +451,13 @@ int close_adapter(int na)
 	}
 
 	LOG("closing adapter %d  -> fe:%d dvr:%d, sock:%d, fe_sock:%d", na, ad->fe, ad->dvr, ad->sock, ad->fe_sock);
-	ad->enabled = 0;
-	if (ad->close)
-		ad->close(ad);
 	//close all streams attached to this adapter
 	//	close_streams_for_adapter (na, -1);
 	mark_pids_deleted(na, -1, NULL);
 	update_pids(na);
+	ad->enabled = 0;
+	if (ad->close)
+		ad->close(ad);
 	//      if(ad->dmx>0)close(ad->dmx);
 #ifdef GXAPI
 	if(ad->module > 0)
@@ -840,6 +840,7 @@ void close_adapter_for_stream(int sid, int aid)
 		is_slave = 0;
 		ad->master_sid = -1;
 		mark_pids_deleted(aid, -1, NULL);
+		init_dvb_parameters(&ad->tp);
 #ifdef AXE
 		free_axe_input(ad);
 #endif
@@ -1415,10 +1416,22 @@ describe_adapter(int sid, int aid, char *dad, int ld)
 					 itoa_positive(plp_isi, t->plp_isi), get_inversion(t->inversion));
 
 	if (use_ad)
+	{
+		int len1 = len;
 		len += strlen(get_stream_pids(sid, dad + len, ld - len));
+		if (len == len1)
+			strlcatf(dad, ld, len, "%s", "none");
+	}
 
 	if (!use_ad && (t->apids || t->pids))
-		strlcatf(dad, ld, len, "%s", t->pids ? t->pids : t->apids);
+	{
+		if (t->pids && strstr(t->pids, "8192"))
+			strlcatf(dad, ld, len, "%s", "all");
+		else
+			strlcatf(dad, ld, len, "%s", t->pids ? t->pids : t->apids);
+	}
+	else if(!use_ad)
+		strlcatf(dad, ld, len, "%s", "none");
 
 	LOGM("describe_adapter: sid %d, aid %d => %s", sid, aid, dad);
 
