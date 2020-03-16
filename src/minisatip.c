@@ -548,7 +548,6 @@ static char gxlocalip[MAX_HOST];
 
 static char *gx_getlocalip(void)
 {
-	int i = 0;
 	char opt[32] = { 0, }, str[256] = { 0, };
 	char buf[LINE_MAX] = { 0, };
 	FILE *fp;

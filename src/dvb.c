@@ -413,6 +413,8 @@ void dvb_set_demux_source(adapter *ad)
 		return;
 	}
 
+	LOG("GXAPI MUXTS: source %d, ts select %d, stream mode %d\n", (opts.ts_config >> 2) & 0x03, (opts.ts_config >> 1) & 0x01, opts.ts_config & 0x01);
+
 	demux.source = (opts.ts_config >> 2) & 0x03; /* DEMUX_TS1 */
 	demux.ts_select = (opts.ts_config >> 1) & 0x01; /* FRONTEND */
 	demux.stream_mode = opts.ts_config & 0x01; /* DEMUX_PARALLEL */
@@ -893,6 +895,9 @@ int dvb_tune(int aid, transponder *tp)
 	int iProp = 0;
 	adapter *ad = get_adapter(aid);
 	int fd_frontend;
+#ifdef GXAPI
+	int workmode = DVBS2_NORMAL;
+#endif
 
 	int freq = tp->freq;
 	struct dtv_property p_cmd[20];
@@ -994,10 +999,31 @@ int dvb_tune(int aid, transponder *tp)
 			fep.u.ofdm.bandwidth = BANDWIDTH_6_MHZ;
 		else if (tp->bw == 7000000)
 			fep.u.ofdm.bandwidth = BANDWIDTH_7_MHZ;
+#ifdef GXAPI
+		if(tp->sys == SYS_DVBT) {
+			workmode = DVBT_NORMAL;
+			if ((ioctl(fd_frontend, FE_SET_FRONTEND_TUNE_MODE, workmode)) == -1)
+				LOG("FE_SET_FRONTEND_TUNE_MODE failed for fd %d: %s", fd_frontend, strerror(errno));
+		} else {
+			workmode = DVBT_AUTO_MODE;
+			if ((ioctl(fd_frontend, FE_SET_FRONTEND_TUNE_MODE, workmode)) == -1)
+				LOG("FE_SET_FRONTEND_TUNE_MODE failed for fd %d: %s", fd_frontend, strerror(errno));
+		}
 
+		if (tp->plp_isi >= 0) {
+			fep.u.ofdm.code_rate_HP = tp->plp_isi & 0xFF;
+			fep.u.ofdm.constellation = 0xff;
+			fep.u.ofdm.code_rate_LP = 0;
+		} else {
+			fep.u.ofdm.code_rate_HP = 0;
+			fep.u.ofdm.constellation = 0;
+			fep.u.ofdm.code_rate_LP = 0;
+		}
+#else
 		fep.u.ofdm.code_rate_HP = tp->fec;
 		fep.u.ofdm.code_rate_LP = tp->fec;
 		fep.u.ofdm.constellation = tp->mtype;
+#endif
 		fep.u.ofdm.transmission_mode = tp->tmode;
 		fep.u.ofdm.guard_interval = tp->gi;
 		fep.u.ofdm.hierarchy_information = HIERARCHY_AUTO;
