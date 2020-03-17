@@ -22,7 +22,6 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  *
  */
-
 #ifndef _DVBFRONTEND_H_
 #define _DVBFRONTEND_H_
 
@@ -121,7 +120,8 @@ typedef enum fe_status {
 	FE_HAS_SYNC    = 0x08,   /*  found sync bytes  */
 	FE_HAS_LOCK    = 0x10,   /*  everything's working... */
 	FE_TIMEDOUT    = 0x20,   /*  no lock within the last ~2 seconds */
-	FE_REINIT      = 0x40    /*  frontend was reinitialized,  */
+	FE_REINIT      = 0x40,    /*  frontend was reinitialized,  */
+	FE_AUTO_SCAN   = 0x3f
 } fe_status_t;                   /*  application is recommended to reset */
 /*  DiSEqC, tone and parameters */
 
@@ -239,7 +239,7 @@ typedef enum fe_hierarchy {
 struct dvb_qpsk_parameters {
 	__u32        symbol_rate;  /* symbol rate in Symbols per second */
 	fe_code_rate_t    fec_inner;    /* forward error correction (see above) */
-	__u32        pls_num;
+	__u32         pls_num;
 };
 
 struct dvb_qam_parameters {
@@ -325,11 +325,12 @@ struct tp_info {
 	__u32 type;//0:DVBS 1:DIRECTV 2:DVBS2 3:DVBS2
 	__u32 frequency;
 	__u32 symbol_rate;
- 	__u32 modulation;
+	__u32 modulation;
 };
 
-#define MAX_PID_ID_NUM 8
-#define MAX_PLP_ID_NUM 16
+// For T2MI
+#define MAX_PID_ID_NUM		8
+#define MAX_PLP_ID_NUM		16
 
 typedef struct {
 	unsigned char plp_id;
@@ -351,10 +352,10 @@ typedef struct {
 } GxT2mi_StreamInfo;
 
 typedef struct {
-#define STREAM_UNKNOW	0
-#define STREAM_TS	1
-#define STREAM_T2MI	2
-	unsigned char stream_type;
+#define STREAM_UNKNOW		0
+#define STREAM_TS		1
+#define STREAM_T2MI		2
+	char stream_type;
 	unsigned int stream_size;
 } GxT2mi_StreamType;
 
@@ -362,7 +363,7 @@ typedef struct {
 	GxT2mi_StreamInfo stream_info;
 	GxT2mi_StreamType stream_type;
 	int demux_id;
-	void *buffer;
+	void * buffer;
 	unsigned int buffer_size;
 } GxT2mi_ProbeInfo;
 
@@ -373,8 +374,7 @@ typedef struct {
  * is closed, this flag will be automatically turned off when the device is
  * reopened read-write.
  */
-#define FE_TUNE_MODE_ONESHOT 0x01
-
+#define FE_TUNE_MODE_ONESHOT           0x01
 
 #define FE_GET_INFO                    _IOR('o', 61, struct dvb_frontend_info)
 
@@ -406,18 +406,27 @@ typedef struct {
 #define FE_DISHNETWORK_SEND_LEGACY_CMD _IO('o', 80) /* unsigned int */
 #define FE_SET_BLINDSCAN               _IOWR('o', 82, struct fe_blindscan_parameters)
 #define FE_GET_BLINDSCAN               _IO('o', 83)
-//#define FE_VERIFY_BLINDSCAN          _IOWR('o', 84, struct eDVBFrontendParametersSatellite)
+/* #define FE_VERIFY_BLINDSCAN          _IOWR('o', 84, struct eDVBFrontendParametersSatellite) */
 #define FE_GET_TP_INFO                 _IOR('o', 85, struct tp_info)
 
 #define FE_SLEEP                       _IO('o', 86)
 #define FE_RESET_BER                   _IO('o', 87)
-#define FE_GET_UNICALBE_IFF_FRE        _IO('o', 88)
-#define FE_GET_PLS_TS_ID               _IOR('o', 89, struct tp_info)
-#define FE_SET_PLS_TS_ID               _IOR('o', 90, struct tp_info)
+#define FE_ENTER_MULTIPLS              _IO('o', 88)
+#define FE_SWITCH_MULTIPLS_TS          _IO('o', 89)
+#define FE_EXIT_MULTIPLS               _IO('o', 90)
 
-#define FE_SET_PLS_SCRAM_N_ID          _IOR('o', 91, __u32)
-#define FE_GET_PLS_NUM_ID              _IOW('o', 92, __u32)
-#define FE_T2MI_PROBE                  _IOR('o', 93, GxT2mi_ProbeInfo)
-#define FE_SET_DEMOD_TS_CONTROL        _IOR('o', 94, __u32)
+#define FE_GET_PLS_TS_ID               _IO('o', 100)
+#define FE_SET_PLS_TS_ID               _IO('o', 101)
+#define FE_GET_PLS_NUM_ID              _IO('o', 102)
+#define FE_SET_PLS_SCRAM_N_ID          _IO('o', 103)
+#define FE_T2MI_PROBE                  _IOWR('o', 104, GxT2mi_ProbeInfo)
+#define FE_SET_PLPID                   _IOWR('o', 105, __u8)
+#define FE_SET_PLPID_AUTO              _IO('o', 106)
+#define FE_SET_L3REC_MODE              _IOWR('o', 107, __u32)
+#define FE_SET_T2MI_STAGE              _IOWR('o', 108, __u8)
+#define FE_SET_T2MI_PID                _IOW('o', 109, __u16)
+#define FE_SET_DEMOD_TS_CONTROL        _IOR('o', 110, __u32)
+
+#define FE_GET_UNICALBE_IFF_FRE        _IO('o', 186)
 
 #endif /*_DVBFRONTEND_H_*/

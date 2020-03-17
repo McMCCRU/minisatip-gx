@@ -1189,6 +1189,9 @@ int dvb_set_pid(adapter *a, int i_pid)
 		return fd;
 	}
 
+	if((i_pid == 8187) && (find_slot(a, 8191) < 0))
+			dvb_set_pid(a, 8191);
+
 	a->slot[slot_nb].type = DEMUX_SLOT_TS;
 	a->slot[slot_nb].flags = (DMX_REPEAT_MODE | DMX_TSOUT_EN | DMX_CRC_DISABLE);
 	a->slot[slot_nb].ts_out_pin = a->muxslot.slot_id;
@@ -1251,6 +1254,9 @@ int dvb_del_filters(adapter *ad, int fd, int pid)
 {
 #ifdef GXAPI
 	int slot_nb = find_slot(ad, pid);
+
+	if((pid == 8187) && (find_slot(ad, 8191) >= 0))
+		dvb_del_filters(ad, fd, 8191);
 #else
 	if (fd < 0)
 		LOG_AND_RETURN(0, "DMX_STOP on an invalid handle %d, pid %d", fd, pid);
