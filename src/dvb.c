@@ -157,7 +157,11 @@ make_func(pls_mode);
 		LOG(a);        \
 		return 0;      \
 	}
+#ifdef GXAPI
+char def_pids[255];
+#else
 char def_pids[100];
+#endif
 
 //#define default_pids "0,1,2,3"
 #define default_pids "8192"
@@ -263,6 +267,17 @@ int detect_dvb_parameters(char *s, transponder *tp)
 		// map pids=all to essential pids
 		tp->pids = (char *)def_pids;
 	}
+
+#ifdef GXAPI
+	/* Workaround for TVHeadend. Problem scan channels DVB-T/T2, need add pid 8191. */
+	if (tp->sys == -1 && tp->apids && strstr(tp->apids, "8187"))
+	{
+		memset(def_pids, 0, sizeof(def_pids));
+		strcpy(def_pids, tp->apids);
+		strcat(def_pids, ",8191");
+		tp->apids = (char *)def_pids;
+	}
+#endif
 
 	if (tp->pids && strncmp(tp->pids, "none", 4) == 0)
 		tp->pids = "";
@@ -429,6 +444,7 @@ void dvb_set_demux_source(adapter *ad)
 		LOG("GXAPI: [%s] Not set property....", __FUNCTION__);
 		GxAVCloseModule(ad->dvr, ad->module);
 		GxAVDestroyDevice(ad->dvr);
+		return;
 	}
 
 	/* special slot */
@@ -438,6 +454,8 @@ void dvb_set_demux_source(adapter *ad)
 	if (ad->ret_prop < 0)
 	{
 		LOG("GXAPI MUXTS: GxDemuxPropertyID_SlotAlloc Problem...");
+		GxAVCloseModule(ad->dvr, ad->module);
+		GxAVDestroyDevice(ad->dvr);
 		return;
 	}
 
@@ -449,6 +467,8 @@ void dvb_set_demux_source(adapter *ad)
 	if (ad->ret_prop < 0)
 	{
 		LOG("GXAPI TS Filter: GxDemuxPropertyID_FilterAlloc Problem...");
+		GxAVCloseModule(ad->dvr, ad->module);
+		GxAVDestroyDevice(ad->dvr);
 		return;
 	}
 #elif defined(DMX_SET_SOURCE)
@@ -1189,9 +1209,6 @@ int dvb_set_pid(adapter *a, int i_pid)
 		return fd;
 	}
 
-	if((i_pid == 8187) && (find_slot(a, 8191) < 0))
-			dvb_set_pid(a, 8191);
-
 	a->slot[slot_nb].type = DEMUX_SLOT_TS;
 	a->slot[slot_nb].flags = (DMX_REPEAT_MODE | DMX_TSOUT_EN | DMX_CRC_DISABLE);
 	a->slot[slot_nb].ts_out_pin = a->muxslot.slot_id;
@@ -1254,9 +1271,6 @@ int dvb_del_filters(adapter *ad, int fd, int pid)
 {
 #ifdef GXAPI
 	int slot_nb = find_slot(ad, pid);
-
-	if((pid == 8187) && (find_slot(ad, 8191) >= 0))
-		dvb_del_filters(ad, fd, 8191);
 #else
 	if (fd < 0)
 		LOG_AND_RETURN(0, "DMX_STOP on an invalid handle %d, pid %d", fd, pid);
