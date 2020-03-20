@@ -949,6 +949,9 @@ void *select_and_execute(void *arg)
 							err_str = strerror(err);
 
 						if (ss->type == TYPE_RTCP || ss->sock == SOCK_TIMEOUT
+#ifdef GXAPI
+										|| (opts.no_dvr_verify && ss->type == TYPE_DVR)
+#endif
 										|| ss->type == TYPE_SSDP)
 						{
 							LOG(

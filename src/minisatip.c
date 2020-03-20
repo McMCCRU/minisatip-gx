@@ -168,6 +168,7 @@ static const struct option long_options[] =
 		{"version", no_argument, NULL, 'V'},
 #if defined(GXAPI)
 		{"ts-config", required_argument, NULL, ABSOLUTE_SRC},
+		{"no-dvr-verify", no_argument, NULL, '8'},
 #elif defined(AXE)
 		{"link-adapters", required_argument, NULL, '7'},
 		{"free-inputs", required_argument, NULL, ABSOLUTE_SRC},
@@ -498,6 +499,8 @@ Help\n\
 	* bit 2-3 - input TS; 0 - DEMUX_TS1, 1 - DEMUX_TS2, 2 - DEMUX_TS3\n\
 	*           3 - DEMUX_SDRAM\n\
 \n\
+* -8 --no-dvr-verify ignore check work DVR socket.\n\
+\n\
 "
 #elif defined(AXE)
 		"\
@@ -650,9 +653,10 @@ void set_options(int argc, char *argv[])
 #define AXE_OPTS "7:QW:8:A:"
 #elif defined(GXAPI)
 	opts.ts_config = 0;
+	opts.no_dvr_verify = 0;
 	opts.no_threads = 1;
 	opts.document_root = "/usr/share/minisatip/html";
-#define AXE_OPTS "A:"
+#define AXE_OPTS "8A:"
 #else
 #define AXE_OPTS ""
 #endif
@@ -1048,6 +1052,10 @@ void set_options(int argc, char *argv[])
 		}
 		break;
 #if defined(GXAPI)
+		case QUATTRO_HIBAND_OPT:
+			opts.no_dvr_verify = 1;
+			break;
+
 		case ABSOLUTE_SRC:
 			opts.ts_config = atoi(optarg) & 0x0f;
 			break;

@@ -113,6 +113,7 @@ struct struct_opts
 	char pmt_scan;
 #if defined(GXAPI)
 	int ts_config;
+	int no_dvr_verify;
 #elif defined(AXE)
 	int quattro;
 	int quattro_hiband;
