@@ -1078,7 +1078,7 @@ int dvb_tune(int aid, transponder *tp)
 		// valid for DD DVB-C2 devices
 
 #ifdef USE_DVBAPI3
-		fep.frequency = tp->freq;
+		fep.frequency = freq;
 		fep.inversion = tp->inversion;
 		fep.u.qam.symbol_rate = tp->sr;
 		fep.u.qam.fec_inner = FEC_AUTO;
