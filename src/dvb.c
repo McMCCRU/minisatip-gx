@@ -1178,7 +1178,7 @@ static int get_free_slot(adapter *ad, int pid)
 
 }
 
-static int find_slot(adapter *ad, int pid)
+int find_slot(adapter *ad, int pid)
 {
 	int i;
 

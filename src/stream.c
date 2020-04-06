@@ -805,6 +805,10 @@ int check_new_transponder(adapter *ad, int rlen)
 	return 0;
 }
 
+#ifdef GXAPI
+extern int find_slot(adapter *ad, int pid);
+#endif
+
 int check_cc(adapter *ad)
 {
 	int i;
@@ -824,6 +828,10 @@ int check_cc(adapter *ad)
 			continue;
 
 		pid = PID_FROM_TS(b);
+#ifdef GXAPI
+		if(find_slot(ad, pid) < 0)
+			continue;
+#endif
 		if (pid == 8191)
 			continue;
 		p = find_pid(ad->id, pid);
