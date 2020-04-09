@@ -265,6 +265,7 @@ int init_hw(int i)
 	ad->sock = -1;
 	ad->force_close = 0;
 	ad->restart_needed = 0;
+	ad->err = 0;
 #ifdef GXAPI
 	ad->ret_prop = -1;
 	ad->module = -1;
@@ -624,7 +625,7 @@ void dump_pids(int aid)
 		if (p->pids[i].flags > 0)
 		{
 			if (dp)
-				LOG("Dumping pids table for adapter %d, pid unknown %d", aid, p->pid_err);
+				LOG("Dumping pids table for adapter %d, number of unknown pids: %d", aid, p->pid_err);
 			dp = 0;
 			LOG("pid %d, fd %d, packets %d, d/c errs %d/%d, flags %d, pmt %d, filter %d, sock %d, sids: %d %d %d %d %d %d %d %d",
 				p->pids[i].pid, p->pids[i].fd,
@@ -803,7 +804,7 @@ int set_adapter_for_stream(int sid, int aid)
 		adapter *ad2 = a[ad->master_source];
 		ad2->used |= (1 << ad->id);
 	}
-	LOG("set adapter %d for stream %d m:%d s:%d", aid, sid, ad->master_sid, ad->sid_cnt);
+	LOG("set adapter %d for sid %d m:%d s:%d", aid, sid, ad->master_sid, ad->sid_cnt);
 	adapter_update_threshold(ad);
 	mutex_unlock(&ad->mutex);
 
@@ -832,7 +833,7 @@ void close_adapter_for_stream(int sid, int aid)
 	}
 	if (ad->sid_cnt > 0)
 		ad->sid_cnt--;
-	LOG("closed adapter %d for stream %d m:%d sid_cnt:%d, restart_needed %d", aid, sid, ad->master_sid,
+	LOG("closed adapter %d for sid %d m:%d sid_cnt:%d, restart_needed %d", aid, sid, ad->master_sid,
 		ad->sid_cnt, ad->restart_needed);
 	// delete the attached PIDs as well
 	if (ad->sid_cnt == 0)
@@ -873,6 +874,11 @@ int update_pids(int aid)
 	if (!ad || ad->updating_pids)
 		return 1;
 
+	if(ad->err)
+	{
+		LOG("adapter %d in error state %d", aid, ad->err);
+		return 1;
+	}
 	ad->updating_pids = 1;
 #ifndef DISABLE_PMT
 	for (i = 0; i < MAX_PIDS; i++)
@@ -1007,7 +1013,7 @@ int tune(int aid, int sid)
 		post_tune(ad);
 	}
 	else
-		LOG("not tuning for SID %d (do_tune=%d, master_sid=%d)", sid,
+		LOG("not tuning for sid %d (do_tune=%d, master_sid=%d)", sid,
 			ad->do_tune, ad->master_sid);
 	if (rv < 0)
 		mark_pids_deleted(aid, sid, NULL);
@@ -1282,27 +1288,7 @@ int set_adapter_parameters(int aid, int sid, transponder *tp)
 			return -1;
 		}
 	}
-
-	if (ad->tp.x_pmt)
-	{
-		char *arg[64];
-		int i, la;
-		la = split(arg, ad->tp.x_pmt, ARRAY_SIZE(arg), ',');
-		for (i = 0; i < la; i++)
-		{
-			int pmt = map_int(arg[i], NULL);
-			if (pmt <= 0)
-				continue;
-			SPid *cp = find_pid(ad->id, pmt);
-			if (!cp)
-				mark_pid_add(-1, aid, pmt);
-			cp = find_pid(ad->id, pmt);
-			if (!cp)
-				continue;
-			//			cp->type |= TYPE_PMT;
-		}
-	}
-
+	
 	if (0 && (ad->tp.apids || ad->tp.pids || ad->tp.dpids))
 		dump_pids(aid);
 	mutex_unlock(&ad->mutex);
