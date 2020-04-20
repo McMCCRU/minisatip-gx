@@ -269,7 +269,6 @@ int init_hw(int i)
 #ifdef GXAPI
 	ad->ret_prop = -1;
 	ad->module = -1;
-	ad->demux_lock = 0;
 	memset(&ad->muxslot, 0, sizeof(GxDemuxProperty_Slot));
 	memset(&ad->muxfilter, 0, sizeof(GxDemuxProperty_Filter));
 	for(j = 0; j < DEMUX_SLOT_MAX; j++) {

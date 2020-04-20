@@ -422,12 +422,6 @@ void dvb_set_demux_source(adapter *ad)
 #ifdef GXAPI
 	GxDemuxProperty_ConfigDemux demux = { 0 };
 
-	if(ad->demux_lock) {
-		LOG("GXAPI MUXTS: Already running...");
-		ad->ret_prop = 0;
-		return;
-	}
-
 	LOG("GXAPI MUXTS: source %d, ts select %d, stream mode %d\n", (opts.ts_config >> 2) & 0x03, (opts.ts_config >> 1) & 0x01, opts.ts_config & 0x01);
 
 	demux.source = (opts.ts_config >> 2) & 0x03; /* DEMUX_TS1 */
@@ -1810,9 +1804,6 @@ static void clear_all_slots(adapter *ad)
 void dvb_close(adapter *a)
 {
 #ifdef GXAPI
-	if(!a->demux_lock)
-		return;
-
 	clear_all_slots(a);
 	/* free special filter */
 	GxAVSetProperty(a->dvr, a->module, GxDemuxPropertyID_FilterFree, (void*)&a->muxfilter, sizeof(GxDemuxProperty_Filter));
@@ -1825,7 +1816,6 @@ void dvb_close(adapter *a)
 	if (a->dmx >= 0)
 		close(a->dmx);
 #endif
-	a->demux_lock = 0;
 	a->dmx = -1;
 	return;
 }
