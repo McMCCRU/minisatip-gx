@@ -1029,6 +1029,7 @@ int dvb_tune(int aid, transponder *tp)
 			workmode = DVBT_AUTO_MODE;
 			if ((ioctl(fd_frontend, FE_SET_FRONTEND_TUNE_MODE, workmode)) == -1)
 				LOG("FE_SET_FRONTEND_TUNE_MODE failed for fd %d: %s", fd_frontend, strerror(errno));
+			fep.frequency += 1; /* Select DVB-T2 */
 		}
 
 		if (tp->plp_isi >= 0) {
