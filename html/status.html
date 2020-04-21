@@ -36,6 +36,12 @@
 			color: #eee !important;
 		}
 
+		.version {
+			font-family: Tahoma, Geneva, sans-serif;
+			font-size: 0.7em;
+			list-style-type: none;
+		}
+
 		table#myTable thead th {
 			background-color: #aaa;
 		}
@@ -270,9 +276,11 @@
 						// Create VLC stream URL
 						// Example: rtsp://@satip/?src=1&freq=12382&pol=H&msys=DVBS2&sr=27500&pids=0,5375,5378,116,5375,32
 						var hostArray = window.location.host.split(':');
-						myTable += "<small>rtsp://@" + hostArray[0]  + "/?src=" + state['ad_pos'][i] + "&freq=" + state['ad_freq'][i] 
-+ "&pol=" + pol[state['ad_pol'][i]].replace('(', '').replace(')', '') + "&msys=" + sys[state['ad_sys'][i]].toUpperCase() + "&sr=" + state['ad_sr'][i] + "&pids="  + st_p + "</small><br />";
-						
+						myTable += "<small><a href=" + '"' + "rtsp://@" + state['rtsp_host'] + "/?src=" + state['ad_pos'][i] + "&freq=" + state['ad_freq'][i]
++ "&pol=" + pol[state['ad_pol'][i]].replace('(', '').replace(')', '') + "&msys=" + sys[state['ad_sys'][i]].toUpperCase() + "&sr=" + state['ad_sr'][i] + "&pids="  + st_p + '"' + ">RTSP Link</a></small><br />";
+						myTable += "<small><a href=" + '"' + "http://" + hostArray[0] + ":" + hostArray[1] + "/?src=" + state['ad_pos'][i] + "&freq=" + state['ad_freq'][i]
++ "&pol=" + pol[state['ad_pol'][i]].replace('(', '').replace(')', '') + "&msys=" + sys[state['ad_sys'][i]].toUpperCase() + "&sr=" + state['ad_sr'][i] + "&pids="  + st_p + '"' + ">HTTP Link</a></small><br />";
+
 						if (state['st_overflow'][j] > 0)
 							myTable += "<small>Dropped: " + (state['st_overflow'][j]/1048576.0).toFixed(2) + " MB</small><br />";
 						if (state['st_buffered'][j] > 0)
@@ -296,6 +304,15 @@
 			}
 
 			myTable += "</tbody></table>";
+
+			// SYSTEM STATUS
+			myTable += "<div align='center'><ul class='version'>"
+			myTable += "<li><B>Minisatip Version:</B> " + state['version'] + "  --  <B>Build date/time:</B> " + state['datetime_compile'] + "</li>"
+			myTable += "<li><B>Current Time:</B> " + state['datetime_current'] + " -- <B>Start Time:</B> " + state['datetime_start'] + " -- <B>Running Time:</B> " + state['time_running'] + "</span></li>"
+			myTable += "<li><B>RTSP address:</B> " + state['rtsp_host'] + " -- <B>UUID:</B> " + state['uuid'] + "</li>"
+			myTable += "<li><B>Process ID:</B> " + state['run_pid'] + " -- <B>Run as ID:</B> " + state['run_user'] + "</span></li>"
+			myTable += "</ul></div>"
+
 			return myTable;
 		}
 

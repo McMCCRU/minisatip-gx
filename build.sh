@@ -10,6 +10,7 @@
 #
 # export PATH=/opt/gxtools/csky-linux-tools-uclibc-20170724/bin:$PATH
 
+export LANG=C
 export PATH=/opt/goxceed/csky-linux-tools-i386-uclibc-20170724/bin:/opt/gxtools/csky-linux-tools-uclibc-20170724/bin:$PATH
 
 cd ./libdvbcsa
