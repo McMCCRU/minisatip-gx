@@ -493,11 +493,14 @@ Help\n\
 \n "
 #if defined(GXAPI)
 		"\
-* -A --ts-config mapping_num: set a 4-bit mask in decimal. (default: 0)\n\
+* -A --ts-config mapping_num: set a 5-bit mask in decimal. (default: 0)\n\
 	* bit 0   - 0 - TS parallel interface, 1 - TS serial interface\n\
 	* bit 1   - select TS; 0 - FRONTEND, 1 - OTHER\n\
 	* bit 2-3 - input TS; 0 - DEMUX_TS1, 1 - DEMUX_TS2, 2 - DEMUX_TS3\n\
 	*           3 - DEMUX_SDRAM\n\
+	* eg: -A 5, set TS serial and DEMUX_TS2\n\
+	* bit 5   - use for Combo receiver (16 + 4 bits)\n\
+	* eg: -A 21, (16 + 5), set TS serial and DEMUX_TS2 for external demod\n\
 \n\
 * -8 --no-dvr-verify ignore check work DVR socket.\n\
 \n\
@@ -1057,7 +1060,7 @@ void set_options(int argc, char *argv[])
 			break;
 
 		case ABSOLUTE_SRC:
-			opts.ts_config = atoi(optarg) & 0x0f;
+			opts.ts_config = atoi(optarg) & 0x1f;
 			break;
 #elif defined(AXE)
 		case LINK_OPT:

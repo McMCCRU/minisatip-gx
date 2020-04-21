@@ -46,6 +46,7 @@
 
 #ifdef GXAPI
 #define DEV_FRONTEND "/dev/dvb%d.frontend%d"
+int gx_ts_config = 0;
 #else
 #define DEV_FRONTEND "/dev/dvb/adapter%d/frontend%d"
 #define DEV_DEMUX "/dev/dvb/adapter%d/demux%d"
@@ -379,6 +380,16 @@ void copy_dvb_parameters(transponder *s, transponder *d)
 	if ((d->sys == SYS_DVBS) && (d->mtype == -1))
 		d->mtype = QPSK;
 
+#ifdef GXAPI
+	if ((opts.ts_config >> 4) & 0x01) { /* For Combo devices */
+		if ((d->sys == SYS_DVBS2) || (d->sys == SYS_DVBS))
+			gx_ts_config = 0; /* Set parallel TS and select DEMUX_TS1 for internal demod */
+		else
+			gx_ts_config = opts.ts_config & 0x0f; /* Set ts demux from opts.ts_config for external demod */
+	} else
+		gx_ts_config = opts.ts_config & 0x0f;
+#endif
+
 	LOG(
 		"copy_dvb_parameters -> src=%d, fe=%d, freq=%d, fec=%d sr=%d, pol=%d, ro=%d, msys=%d, mtype=%d, plts=%d, bw=%d, inv=%d, pids=%s, apids=%s, dpids=%s x_pmt=%s",
 		d->diseqc, d->fe, d->freq, d->fec, d->sr, d->pol, d->ro, d->sys,
@@ -422,11 +433,17 @@ void dvb_set_demux_source(adapter *ad)
 #ifdef GXAPI
 	GxDemuxProperty_ConfigDemux demux = { 0 };
 
+	if(ad->demux_lock) {
+		LOG("GXAPI MUXTS: Already running...");
+		ad->ret_prop = 0;
+		return;
+	}
+
 	LOG("GXAPI MUXTS: source %d, ts select %d, stream mode %d\n", (opts.ts_config >> 2) & 0x03, (opts.ts_config >> 1) & 0x01, opts.ts_config & 0x01);
 
-	demux.source = (opts.ts_config >> 2) & 0x03; /* DEMUX_TS1 */
-	demux.ts_select = (opts.ts_config >> 1) & 0x01; /* FRONTEND */
-	demux.stream_mode = opts.ts_config & 0x01; /* DEMUX_PARALLEL */
+	demux.source = (gx_ts_config >> 2) & 0x03; /* DEMUX_TS1 */
+	demux.ts_select = (gx_ts_config >> 1) & 0x01; /* FRONTEND */
+	demux.stream_mode = gx_ts_config & 0x01; /* DEMUX_PARALLEL */
 	demux.time_gate = 0xf;
 	demux.byt_cnt_err_gate = 0x03;
 	demux.sync_loss_gate = 0x03;
@@ -465,6 +482,7 @@ void dvb_set_demux_source(adapter *ad)
 		GxAVDestroyDevice(ad->dvr);
 		return;
 	}
+	ad->demux_lock = 1;
 #elif defined(DMX_SET_SOURCE)
 	if (ad->dmx_source >= 0)
 	{
@@ -1276,8 +1294,13 @@ int dvb_del_filters(adapter *ad, int fd, int pid)
 		LOG("clearing filter on PID %d FD %d", pid, fd);
 #endif
 	SPid *p = find_pid(ad->id, pid);
-	if (!p)
+	if (!p) {
 		LOG("%s: Could not find pid %d on adapter %d", __FUNCTION__, pid, ad->id);
+#ifdef GXAPI
+		if(pid == 0)
+			slot_nb = -1;
+#endif
+	}
 	if (p && (p->sock >= 0))
 	{
 		sockets_force_close(p->sock);
@@ -1791,7 +1814,7 @@ static void clear_all_slots(adapter *ad)
 {
 	int i;
 
-	for(i = 0; i < 0x2000; i++)
+	for(i = 1; i < 0x2000; i++)
 	{
 		if(find_slot(ad, i) >= 0)
 		{
@@ -1804,6 +1827,9 @@ static void clear_all_slots(adapter *ad)
 void dvb_close(adapter *a)
 {
 #ifdef GXAPI
+	if(!a->demux_lock)
+		return;
+
 	clear_all_slots(a);
 	/* free special filter */
 	GxAVSetProperty(a->dvr, a->module, GxDemuxPropertyID_FilterFree, (void*)&a->muxfilter, sizeof(GxDemuxProperty_Filter));
@@ -1812,6 +1838,7 @@ void dvb_close(adapter *a)
 	memset(&a->muxfilter, 0, sizeof(GxDemuxProperty_Filter));
 	memset(&a->muxslot, 0, sizeof(GxDemuxProperty_Slot));
 	a->muxslot.slot_id = -1;
+	a->demux_lock = 0;
 #else
 	if (a->dmx >= 0)
 		close(a->dmx);
