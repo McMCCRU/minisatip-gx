@@ -386,6 +386,7 @@ void copy_dvb_parameters(transponder *s, transponder *d)
 			gx_ts_config = 0; /* Set parallel TS and select DEMUX_TS1 for internal demod */
 		else
 			gx_ts_config = opts.ts_config & 0x0f; /* Set ts demux from opts.ts_config for external demod */
+		LOG("GXAPI: Combo mode - TS config set as %d", gx_ts_config & 0x0f);
 	} else
 		gx_ts_config = opts.ts_config & 0x0f;
 #endif
@@ -439,7 +440,7 @@ void dvb_set_demux_source(adapter *ad)
 		return;
 	}
 
-	LOG("GXAPI MUXTS: source %d, ts select %d, stream mode %d\n", (opts.ts_config >> 2) & 0x03, (opts.ts_config >> 1) & 0x01, opts.ts_config & 0x01);
+	LOG("GXAPI MUXTS: Open DVB device - TS source %d, ts select %d, stream mode %d\n", (gx_ts_config >> 2) & 0x03, (gx_ts_config >> 1) & 0x01, gx_ts_config & 0x01);
 
 	demux.source = (gx_ts_config >> 2) & 0x03; /* DEMUX_TS1 */
 	demux.ts_select = (gx_ts_config >> 1) & 0x01; /* FRONTEND */
@@ -1830,6 +1831,8 @@ void dvb_close(adapter *a)
 	if(!a->demux_lock)
 		return;
 
+	LOG("GXAPI: Close DVB device!");
+
 	clear_all_slots(a);
 	/* free special filter */
 	GxAVSetProperty(a->dvr, a->module, GxDemuxPropertyID_FilterFree, (void*)&a->muxfilter, sizeof(GxDemuxProperty_Filter));
@@ -1878,7 +1881,7 @@ void find_dvb_adapter(adapter **a)
 
 			if (cnt == 3)
 #else
-			sprintf(buf, "/dev/gxav%d", j);
+			sprintf(buf, "/dev/gxav%d", i);
 			if (!access(buf, R_OK))
 				cnt++;
 
