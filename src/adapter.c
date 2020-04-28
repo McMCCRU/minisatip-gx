@@ -267,6 +267,7 @@ int init_hw(int i)
 	ad->restart_needed = 0;
 	ad->err = 0;
 #ifdef GXAPI
+	ad->gx_ts_config = opts.ts_config & 0x1f;
 	ad->ret_prop = -1;
 	ad->module = -1;
 	ad->demux_lock = 0;

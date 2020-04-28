@@ -48,6 +48,7 @@ typedef struct struct_adapter
 
 #ifdef GXAPI
 #define DEMUX_SLOT_MAX 32 /* 32 - gx6605s, 64 - gx6622, gx3211... */
+	int gx_ts_config;
 	int ret_prop;
 	int module;
 	int demux_lock;

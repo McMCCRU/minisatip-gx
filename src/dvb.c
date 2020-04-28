@@ -46,7 +46,7 @@
 
 #ifdef GXAPI
 #define DEV_FRONTEND "/dev/dvb%d.frontend%d"
-int gx_ts_config = 0;
+int gx_sys = -1;
 #else
 #define DEV_FRONTEND "/dev/dvb/adapter%d/frontend%d"
 #define DEV_DEMUX "/dev/dvb/adapter%d/demux%d"
@@ -370,6 +370,9 @@ void copy_dvb_parameters(transponder *s, transponder *d)
 	d->apids = s->apids;
 	d->pids = s->pids;
 	d->dpids = s->dpids;
+#ifdef GXAPI
+	gx_sys = d->sys;
+#endif
 
 	if (d->diseqc < 1) // force position 1 on the diseqc switch
 		d->diseqc = 1;
@@ -379,17 +382,6 @@ void copy_dvb_parameters(transponder *s, transponder *d)
 
 	if ((d->sys == SYS_DVBS) && (d->mtype == -1))
 		d->mtype = QPSK;
-
-#ifdef GXAPI
-	if ((opts.ts_config >> 4) & 0x01) { /* For Combo devices */
-		if ((d->sys == SYS_DVBS2) || (d->sys == SYS_DVBS))
-			gx_ts_config = 0; /* Set parallel TS and select DEMUX_TS1 for internal demod */
-		else
-			gx_ts_config = opts.ts_config & 0x0f; /* Set ts demux from opts.ts_config for external demod */
-		LOG("GXAPI: Combo mode - TS config set as %d", gx_ts_config & 0x0f);
-	} else
-		gx_ts_config = opts.ts_config & 0x0f;
-#endif
 
 	LOG(
 		"copy_dvb_parameters -> src=%d, fe=%d, freq=%d, fec=%d sr=%d, pol=%d, ro=%d, msys=%d, mtype=%d, plts=%d, bw=%d, inv=%d, pids=%s, apids=%s, dpids=%s x_pmt=%s",
@@ -440,11 +432,11 @@ void dvb_set_demux_source(adapter *ad)
 		return;
 	}
 
-	LOG("GXAPI MUXTS: Open DVB device - TS source %d, ts select %d, stream mode %d\n", (gx_ts_config >> 2) & 0x03, (gx_ts_config >> 1) & 0x01, gx_ts_config & 0x01);
+	LOG("GXAPI MUXTS: Open DVB device - TS source %d, ts select %d, stream mode %d\n", (ad->gx_ts_config >> 2) & 0x03, (ad->gx_ts_config >> 1) & 0x01, ad->gx_ts_config & 0x01);
 
-	demux.source = (gx_ts_config >> 2) & 0x03; /* DEMUX_TS1 */
-	demux.ts_select = (gx_ts_config >> 1) & 0x01; /* FRONTEND */
-	demux.stream_mode = gx_ts_config & 0x01; /* DEMUX_PARALLEL */
+	demux.source = (ad->gx_ts_config >> 2) & 0x03; /* DEMUX_TS1 */
+	demux.ts_select = (ad->gx_ts_config >> 1) & 0x01; /* FRONTEND */
+	demux.stream_mode = ad->gx_ts_config & 0x01; /* DEMUX_PARALLEL */
 	demux.time_gate = 0xf;
 	demux.byt_cnt_err_gate = 0x03;
 	demux.sync_loss_gate = 0x03;
@@ -509,18 +501,32 @@ void dvb_set_demux_source(adapter *ad)
 int dvb_open_device(adapter *ad)
 {
 	char buf[100];
+	int fn = ad->fn;
 #ifndef GXAPI
 	int use_demux = opts.use_demux_device == USE_DEMUX || opts.use_demux_device == USE_PES_FILTERS_AND_DEMUX;
+#else
+	if((gx_sys >= 0) && ((opts.ts_config >> 4) & 0x01)) { /* For Combo devices */
+		if ((gx_sys == SYS_DVBS2) || (gx_sys == SYS_DVBS)) {
+			ad->gx_ts_config = 0; /* Set parallel TS and select DEMUX_TS1 for internal demod */
+			fn = 0; /* Set fe 0 and select internal TS interface */
+		} else {
+			ad->gx_ts_config = opts.ts_config & 0x0f; /* Set ts demux from opts.ts_config for external demod */
+			fn = 1; /* Set fe 1 and select external TS interface */
+		}
+		LOG("GXAPI: Combo mode - TS config set as %d for fe %d", ad->gx_ts_config & 0x0f, fn);
+	} else {
+		ad->gx_ts_config = opts.ts_config & 0x0f;
+	}
 #endif
 	LOG("trying to open [%d] adapter %d and frontend %d", ad->id, ad->pa,
-		ad->fn);
-	sprintf(buf, DEV_FRONTEND, ad->pa, ad->fn);
+		fn);
+	sprintf(buf, DEV_FRONTEND, ad->pa, fn);
 	ad->fe = open(buf, O_RDWR | O_NONBLOCK);
 #ifndef GXAPI
 	if (use_demux)
-		sprintf(buf, DEV_DEMUX, ad->pa, ad->fn);
+		sprintf(buf, DEV_DEMUX, ad->pa, fn);
 	else
-		sprintf(buf, DEV_DVR, ad->pa, ad->fn);
+		sprintf(buf, DEV_DVR, ad->pa, fn);
 
 	ad->dvr = open(buf, use_demux ? O_RDWR | O_NONBLOCK : O_RDONLY | O_NONBLOCK);
 #else
@@ -528,7 +534,7 @@ int dvb_open_device(adapter *ad)
 #endif
 	if (ad->fe < 0 || ad->dvr < 0)
 	{
-		sprintf(buf, DEV_FRONTEND, ad->pa, ad->fn);
+		sprintf(buf, DEV_FRONTEND, ad->pa, fn);
 		LOG("Could not open %s in RW mode (fe: %d, dvr: %d) error %d: %s", buf, ad->fe,
 			ad->dvr, errno, strerror(errno));
 		if (ad->fe >= 0)
@@ -555,15 +561,15 @@ int dvb_open_device(adapter *ad)
 	{
 		if (ad->master_source >= 0)
 		{
-			set_proc_data(ad->fn, "fbc_link", 1);
-			set_proc_data(ad->fn, "fbc_connect", ad->master_source);
+			set_proc_data(fn, "fbc_link", 1);
+			set_proc_data(fn, "fbc_connect", ad->master_source);
 		}
 		else
 		{
-			if (ad->fn > 1)
+			if (fn > 1)
 				LOG("FBC master adapter is recommended to be adapter 0 or 1, depending on the number of physical inputs");
-			set_proc_data(ad->fn, "fbc_link", 0);
-			set_proc_data(ad->fn, "fbc_connect", ad->fn);
+			set_proc_data(fn, "fbc_link", 0);
+			set_proc_data(fn, "fbc_connect", fn);
 		}
 	}
 #else
@@ -1533,12 +1539,37 @@ int dvb_del_psi_filters(adapter *ad, int fd, int pid)
 		rv = dvb_demux_del_filters(ad, fd, pid);
 	return rv;
 }
+
+#else
+/* Check frontend num 2 for Combo devices */
+static int gx_check_fe2(void)
+{
+	struct dvb_frontend_info info;
+	int fd;
+
+	fd =  open("/dev/dvb0.frontend1", O_RDWR | O_NONBLOCK);
+	if(fd < 0)
+		return -1;
+	if(ioctl(fd, FE_GET_INFO, &info) < 0) {
+		close(fd);
+		return -1;
+	}
+	close(fd);
+
+	LOG("GXAPI: Detected adapter 0 frontend 1 DVB Card Name: %s",
+		info.name);
+
+	return (int)info.type;
+}
 #endif /* !GXAPI */
 
 fe_delivery_system_t dvb_delsys(int aid, int fd, fe_delivery_system_t *sys)
 {
 	int i, res, rv = 0;
 	struct dvb_frontend_info fe_info;
+#ifdef GXAPI
+	int fe2_type = -1;
+#endif
 
 	static struct dtv_property enum_cmdargs[] =
 		{
@@ -1612,6 +1643,14 @@ fe_delivery_system_t dvb_delsys(int aid, int fd, fe_delivery_system_t *sys)
 			LOG("no available delivery system for adapter %d", aid);
 			return 0;
 		}
+#ifdef GXAPI
+		fe2_type = gx_check_fe2();
+		if(fe2_type ==  FE_OFDM) {
+			sys[idx++] = SYS_DVBT2;
+			sys[idx++] = SYS_DVBT;
+		} else if(fe2_type ==  FE_QAM)
+			sys[idx++] = SYS_DVBC_ANNEX_AC;
+#endif
 		nsys = idx;
 		rv = sys[0];
 	}
@@ -1866,11 +1905,11 @@ void find_dvb_adapter(adapter **a)
 		for (j = 0; j < MAX_ADAPTERS; j++)
 		{
 			cnt = 0;
+#ifndef GXAPI
 			sprintf(buf, DEV_FRONTEND, i, j);
 			if (!access(buf, R_OK))
 				cnt++;
 
-#ifndef GXAPI
 			sprintf(buf, DEV_DEMUX, i, j);
 			if (!access(buf, R_OK))
 				cnt++;
@@ -1881,10 +1920,15 @@ void find_dvb_adapter(adapter **a)
 
 			if (cnt == 3)
 #else
-			sprintf(buf, "/dev/gxav%d", i);
-			if (!access(buf, R_OK))
-				cnt++;
+			if(!i && !j) {
+				sprintf(buf, DEV_FRONTEND, i, j);
+				if (!access(buf, R_OK))
+					cnt++;
 
+				sprintf(buf, "/dev/gxav%d", i);
+				if (!access(buf, R_OK))
+					cnt++;
+			}
 			if (cnt == 2)
 #endif
 			{
