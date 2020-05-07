@@ -274,8 +274,8 @@ int init_hw(int i)
 	memset(&ad->muxslot, 0, sizeof(GxDemuxProperty_Slot));
 	memset(&ad->muxfilter, 0, sizeof(GxDemuxProperty_Filter));
 	for(j = 0; j < DEMUX_SLOT_MAX; j++) {
-		memset(&ad->slot[i], 0, sizeof(GxDemuxProperty_Slot));
-		ad->slot[i].slot_id = -1;
+		memset(&ad->slot[j], 0, sizeof(GxDemuxProperty_Slot));
+		ad->slot[j].slot_id = -1;
 	}
 #endif
 
