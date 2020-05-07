@@ -1244,6 +1244,7 @@ int dvb_set_pid(adapter *a, int i_pid)
 	ret = GxAVSetProperty(a->dvr, a->module, GxDemuxPropertyID_SlotEnable, &a->slot[slot_nb] ,sizeof(GxDemuxProperty_Slot));
 	if (ret < 0)
 		LOG_AND_RETURN(-1, "GXAPI set TS: GxDemuxPropertyID_SlotEnable Problem...");
+	LOG("GXAPI add TS: Adding filter on PID %d slot %d", i_pid, slot_nb);
 #else
 	char buf[100];
 	int hw, ad;
