@@ -415,6 +415,15 @@ int init_all_hw()
 	find_adapters();
 	num_adapters = 0;
 	init_complete = 1;
+#ifdef GXAPI
+	gx_handler = GxAVCreateDevice(0);
+	if(gx_handler < 0) {
+		LOG("GXAPI: Could not open GX Device /dev/gxav0!!!\n");
+		init_complete = 0;
+		mutex_unlock(&a_mutex);
+		return num_adapters;
+	}
+#endif
 	for (i = 0; i < MAX_ADAPTERS; i++)
 		if (!a[i] || ((!a[i]->enabled || a[i]->fe <= 0) && ((a[i]->pa >= 0 && a[i]->fn >= 0) || a[i]->type > ADAPTER_DVB))) // ADAPTER is intialized and not DVB
 		{
@@ -464,7 +473,7 @@ int close_adapter(int na)
 	if(ad->module > 0)
 		GxAVCloseModule(ad->dvr, ad->module);
 	if(ad->dvr > 0)
-		GxAVDestroyDevice(ad->dvr);
+		ad->dvr = -1;
 	ad->module = -1;
 #endif
 	if (ad->fe > 0)
@@ -1476,6 +1485,10 @@ void free_all_adapters()
 	fprintf(stderr, "\n\nREEL: recv_exit\n");
 	if (opts.netcv_if && recv_exit())
 		LOG("Netceiver exit failed");
+#endif
+#ifdef GXAPI
+	if(gx_handler >= 0)
+		GxAVDestroyDevice(gx_handler);
 #endif
 }
 char is_adapter_disabled(int i)

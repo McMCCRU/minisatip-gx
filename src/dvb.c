@@ -46,7 +46,6 @@
 
 #ifdef GXAPI
 #define DEV_FRONTEND "/dev/dvb%d.frontend%d"
-int gx_ts_config = 0;
 #else
 #define DEV_FRONTEND "/dev/dvb/adapter%d/frontend%d"
 #define DEV_DEMUX "/dev/dvb/adapter%d/demux%d"
@@ -380,17 +379,6 @@ void copy_dvb_parameters(transponder *s, transponder *d)
 	if ((d->sys == SYS_DVBS) && (d->mtype == -1))
 		d->mtype = QPSK;
 
-#ifdef GXAPI
-	if ((opts.ts_config >> 4) & 0x01) { /* For Combo devices */
-		if ((d->sys == SYS_DVBS2) || (d->sys == SYS_DVBS))
-			gx_ts_config = 0; /* Set parallel TS and select DEMUX_TS1 for internal demod */
-		else
-			gx_ts_config = opts.ts_config & 0x0f; /* Set ts demux from opts.ts_config for external demod */
-		LOG("GXAPI: Combo mode - TS config set as %d", gx_ts_config & 0x0f);
-	} else
-		gx_ts_config = opts.ts_config & 0x0f;
-#endif
-
 	LOG(
 		"copy_dvb_parameters -> src=%d, fe=%d, freq=%d, fec=%d sr=%d, pol=%d, ro=%d, msys=%d, mtype=%d, plts=%d, bw=%d, inv=%d, pids=%s, apids=%s, dpids=%s x_pmt=%s",
 		d->diseqc, d->fe, d->freq, d->fec, d->sr, d->pol, d->ro, d->sys,
@@ -432,6 +420,7 @@ void set_proc_data(int adapter, char *name, int val)
 void dvb_set_demux_source(adapter *ad)
 {
 #ifdef GXAPI
+	int gx_ts_config = opts.ts_config & 0x1f;
 	GxDemuxProperty_ConfigDemux demux = { 0 };
 
 	if(ad->demux_lock) {
@@ -439,6 +428,11 @@ void dvb_set_demux_source(adapter *ad)
 		ad->ret_prop = 0;
 		return;
 	}
+
+	if (((gx_ts_config >> 4) & 0x01) && (ad->id == 0))
+		gx_ts_config = 0;
+	else
+		gx_ts_config = opts.ts_config & 0x0f;
 
 	LOG("GXAPI MUXTS: Open DVB device - TS source %d, ts select %d, stream mode %d\n", (gx_ts_config >> 2) & 0x03, (gx_ts_config >> 1) & 0x01, gx_ts_config & 0x01);
 
@@ -455,7 +449,7 @@ void dvb_set_demux_source(adapter *ad)
 	{
 		LOG("GXAPI: [%s] Not set property....", __FUNCTION__);
 		GxAVCloseModule(ad->dvr, ad->module);
-		GxAVDestroyDevice(ad->dvr);
+		ad->dvr = -1;
 		return;
 	}
 
@@ -467,7 +461,7 @@ void dvb_set_demux_source(adapter *ad)
 	{
 		LOG("GXAPI MUXTS: GxDemuxPropertyID_SlotAlloc Problem...");
 		GxAVCloseModule(ad->dvr, ad->module);
-		GxAVDestroyDevice(ad->dvr);
+		ad->dvr = -1;
 		return;
 	}
 
@@ -480,7 +474,7 @@ void dvb_set_demux_source(adapter *ad)
 	{
 		LOG("GXAPI TS Filter: GxDemuxPropertyID_FilterAlloc Problem...");
 		GxAVCloseModule(ad->dvr, ad->module);
-		GxAVDestroyDevice(ad->dvr);
+		ad->dvr = -1;
 		return;
 	}
 	ad->demux_lock = 1;
@@ -524,7 +518,7 @@ int dvb_open_device(adapter *ad)
 
 	ad->dvr = open(buf, use_demux ? O_RDWR | O_NONBLOCK : O_RDONLY | O_NONBLOCK);
 #else
-	ad->dvr = GxAVCreateDevice(0);
+	ad->dvr = gx_handler;
 #endif
 	if (ad->fe < 0 || ad->dvr < 0)
 	{
@@ -535,7 +529,7 @@ int dvb_open_device(adapter *ad)
 			close(ad->fe);
 		if (ad->dvr >= 0)
 #ifdef GXAPI
-			GxAVDestroyDevice(ad->dvr);
+			ad->dvr = -1;
 #else
 			close(ad->dvr);
 #endif
@@ -567,12 +561,12 @@ int dvb_open_device(adapter *ad)
 		}
 	}
 #else
-	LOG("GXAPI: Chip detected %04X", GxChipDetect(ad->dvr));
-	ad->module = GxAVOpenModule(ad->dvr, GXAV_MOD_DEMUX, 0);
+	LOG("GXAPI: Chip detected %04X, set dmx%d", GxChipDetect(ad->dvr), ad->id);
+	ad->module = GxAVOpenModule(ad->dvr, GXAV_MOD_DEMUX, ad->id);
 	if(ad->module < 0)
 	{
-		LOG("GXAPI: [%s] Not start DEMUX module....", __FUNCTION__);
-		GxAVDestroyDevice(ad->dvr);
+		LOG("GXAPI: [%s] Not start DEMUX module for DMX%d....", __FUNCTION__, ad->id);
+		ad->dvr = -1;
 		if (ad->fe >= 0)
 			close(ad->fe);
 		return 1;
@@ -1881,7 +1875,7 @@ void find_dvb_adapter(adapter **a)
 
 			if (cnt == 3)
 #else
-			sprintf(buf, "/dev/gxav%d", i);
+			sprintf(buf, "/dev/gxav%d", 0);
 			if (!access(buf, R_OK))
 				cnt++;
 

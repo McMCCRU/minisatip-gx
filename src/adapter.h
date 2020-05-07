@@ -37,6 +37,7 @@ typedef uint8_t (*Dvb_delsys)(int aid, int fd,
 #include <gxav_module_property.h>
 #include <gxav_demux_propertytypes.h>
 #include <gxav_event_type.h>
+int gx_handler;
 #endif
 
 typedef struct struct_adapter

@@ -498,7 +498,7 @@ int gx_read_ts(void *buf, int len, sockets *ss)
 	GxDemuxProperty_FilterRead DmxFilterRead;
 	adapter *ad = get_adapter(aid);
 
-	ret = GxAVWaitEvents(ad->dvr, ad->module, EVENT_DEMUX0_FILTRATE_TS_END, 1000000, &EventRet);
+	ret = GxAVWaitEvents(ad->dvr, ad->module, (ad->id == 0) ? EVENT_DEMUX0_FILTRATE_TS_END : EVENT_DEMUX1_FILTRATE_TS_END, 1000000, &EventRet);
 	if(ret < 0) {
 		LOG("GXAPI TS read: GxAVWaitEvents Problem...");
 		return -1;
