@@ -167,6 +167,32 @@ char def_pids[100];
 //#define default_pids "0,1,2,3"
 #define default_pids "8192"
 
+#ifdef GXAPI
+int get_dvb_mode(int sys)
+{
+	switch (sys)
+	{
+	case SYS_DVBS:
+	case SYS_DVBS2:
+		return 1;
+	case SYS_DVBT:
+	case SYS_DVBT2:
+		return 2;
+	case SYS_DVBC2:
+	case SYS_DVBC_ANNEX_A:
+		return 3;
+	case SYS_ATSC:
+	case SYS_DVBC_ANNEX_B:
+		return 4;
+	case SYS_ISDBT:
+		return 5;
+	default:
+		return -1;
+	}
+	return -1;
+}
+#endif
+
 int detect_dvb_parameters(char *s, transponder *tp)
 {
 	char *arg[30];
@@ -270,12 +296,12 @@ int detect_dvb_parameters(char *s, transponder *tp)
 	}
 
 #ifdef GXAPI
-	/* Workaround for TVHeadend. Problem scan channels DVB-T/T2, need add pid 8191. */
-	if (tp->sys == -1 && tp->apids && strstr(tp->apids, "8187"))
+	/* Workaround for TVHeadend. Problem scan channels DVB-T/T2, need add pid 18. */
+	if (tp->sys == -1 && tp->apids && strlen(tp->apids) == 4 && !strncmp(tp->apids, "8187", 4))
 	{
 		memset(def_pids, 0, sizeof(def_pids));
 		strcpy(def_pids, tp->apids);
-		strcat(def_pids, ",8191");
+		strcat(def_pids, ",18");
 		tp->apids = (char *)def_pids;
 	}
 #endif
@@ -371,7 +397,7 @@ void copy_dvb_parameters(transponder *s, transponder *d)
 	d->pids = s->pids;
 	d->dpids = s->dpids;
 #ifdef GXAPI
-	gx_sys = d->sys;
+	gx_sys = get_dvb_mode(d->sys);
 #endif
 
 	if (d->diseqc < 1) // force position 1 on the diseqc switch
@@ -425,12 +451,6 @@ void dvb_set_demux_source(adapter *ad)
 {
 #ifdef GXAPI
 	GxDemuxProperty_ConfigDemux demux = { 0 };
-
-	if(ad->demux_lock) {
-		LOG("GXAPI MUXTS: Already running...");
-		ad->ret_prop = 0;
-		return;
-	}
 
 	LOG("GXAPI MUXTS: Open DVB device - TS source %d, ts select %d, stream mode %d\n", (ad->gx_ts_config >> 2) & 0x03, (ad->gx_ts_config >> 1) & 0x01, ad->gx_ts_config & 0x01);
 
@@ -505,8 +525,13 @@ int dvb_open_device(adapter *ad)
 #ifndef GXAPI
 	int use_demux = opts.use_demux_device == USE_DEMUX || opts.use_demux_device == USE_PES_FILTERS_AND_DEMUX;
 #else
-	if((gx_sys >= 0) && ((opts.ts_config >> 4) & 0x01)) { /* For Combo devices */
-		if ((gx_sys == SYS_DVBS2) || (gx_sys == SYS_DVBS)) {
+	if(ad->demux_lock) {
+		LOG("GXAPI MUXTS: Already running...");
+		return 1;
+	}
+
+	if((gx_sys > 0) && ((opts.ts_config >> 4) & 0x01)) { /* For Combo devices */
+		if ((gx_sys == get_dvb_mode(SYS_DVBS2)) || (gx_sys == get_dvb_mode(SYS_DVBS))) {
 			ad->gx_ts_config = 0; /* Set parallel TS and select DEMUX_TS1 for internal demod */
 			fn = 0; /* Set fe 0 and select internal TS interface */
 		} else {
@@ -517,6 +542,7 @@ int dvb_open_device(adapter *ad)
 	} else {
 		ad->gx_ts_config = opts.ts_config & 0x0f;
 	}
+	ad->gx_sys = gx_sys;
 #endif
 	LOG("trying to open [%d] adapter %d and frontend %d", ad->id, ad->pa,
 		fn);
@@ -587,8 +613,10 @@ int dvb_open_device(adapter *ad)
 #endif
 	dvb_set_demux_source(ad);
 #ifdef GXAPI
-	if(ad->ret_prop < 0)
+	if(ad->ret_prop < 0) {
+		ad->ret_prop = 0;
 		return 1;
+	}
 #endif
 	return 0;
 }
@@ -959,6 +987,11 @@ int dvb_tune(int aid, transponder *tp)
 
 	if (!ad)
 		return -404;
+
+#ifdef GXAPI
+	if((ad->gx_sys > 0) && (ad->gx_sys != get_dvb_mode(tp->sys)))
+		return -404;
+#endif
 
 	fd_frontend = ad->fe;
 	memset(p_cmd, 0, sizeof(p_cmd));
@@ -1882,6 +1915,8 @@ void dvb_close(adapter *a)
 	memset(&a->muxslot, 0, sizeof(GxDemuxProperty_Slot));
 	a->muxslot.slot_id = -1;
 	a->demux_lock = 0;
+	a->gx_sys = -1;
+	gx_sys = -1;
 #else
 	if (a->dmx >= 0)
 		close(a->dmx);

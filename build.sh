@@ -10,11 +10,19 @@
 #
 # export PATH=/opt/gxtools/csky-linux-tools-uclibc-20170724/bin:$PATH
 
+# OLD_GX_UCLIBC=1
+VAR=""
+
 export LANG=C
-export PATH=/opt/goxceed/csky-linux-tools-i386-uclibc-20170724/bin:/opt/gxtools/csky-linux-tools-uclibc-20170724/bin:$PATH
+if [ $OLD_GX_UCLIBC = 1 ]; then
+	export EXTRA_CFLAGS="-DOLD_GX_UCLIBC"
+	export PATH=/opt/goxceed/csky-linux/bin:$PATH
+else
+	export PATH=/opt/goxceed/csky-linux-tools-i386-uclibc-20170724/bin:/opt/gxtools/csky-linux-tools-uclibc-20170724/bin:$PATH
+fi
 
 cd ./libdvbcsa
-./build.sh
+./build.sh $OLD_GX_UCLIBC
 cd ..
 
 if [ ! -f config.log ]; then

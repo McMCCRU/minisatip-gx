@@ -1349,6 +1349,14 @@ int sendmmsg(int rsock, struct mmsghdr *msg, int len, int t)
 #endif
 
 #ifdef GXAPI
+#ifdef OLD_GX_UCLIBC
+struct mmsghdr
+{
+	struct msghdr msg_hdr;  /* Actual message header.  */
+	unsigned int msg_len;   /* Number of received or sent bytes for the entry.  */
+};
+#endif
+
 int gx_sendmmsg(int rsock, struct mmsghdr *msg, int len, int t)
 {
 	int i;
