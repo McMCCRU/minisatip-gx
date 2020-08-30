@@ -119,6 +119,7 @@ struct struct_opts
 	char disable_dvb;
 	char disable_ssdp;
 	char pmt_scan;
+	char emulate_pids_all;
 #if defined(GXAPI)
 	int ts_config;
 	int no_dvr_verify;

@@ -120,6 +120,7 @@ int rtsp, http, si, si1, ssdp1;
 #define FORCE_CI_OPT 'C'
 #define CA_PIN_OPT '3'
 #define IPV4_OPT '4'
+#define NO_PIDS_ALL 'k'
 
 static const struct option long_options[] =
 	{
@@ -361,6 +362,8 @@ Help\n\
 	* eg: -H 5:50 - set thresholds to 5ms (UDP) and 50ms (TCP)\n\
 \n\
 * -i --priority prio: set the DVR thread priority to prio \n\
+\n\
+* -k Emulate pids=all when the hardware does not support it, on enigma boxes is enabled by default \n\
 \n\
 * -l specifies the modules comma separated that will have increased verbosity, \n\
 	logging to stdout in foreground mode or in /tmp/minisatip.log when a daemon\n\
@@ -647,6 +650,7 @@ void set_options(int argc, char *argv[])
 	opts.use_demux_device = 0;
 #if defined(ENIGMA)
 	opts.use_demux_device = 2;
+	opts.emulate_pids_all = 1;
 #endif
 	opts.max_pids = 0;
 	opts.dvbapi_offset = 0; // offset for multiple dvbapi clients to the same server
@@ -675,7 +679,7 @@ void set_options(int argc, char *argv[])
 #define AXE_OPTS ""
 #endif
 
-	while ((opt = getopt_long(argc, argv, "fl:v:r:a:td:w:p:s:n:hB:b:H:m:p:e:x:u:j:U:o:gy:i:q:D:NGVR:S:TX:Y:OL:EP:Z:0:F:M:1:2:3:C:4" AXE_OPTS, long_options, NULL)) != -1)
+	while ((opt = getopt_long(argc, argv, "fl:v:r:a:td:w:p:s:n:hB:b:H:m:p:e:x:u:j:U:o:gy:i:q:D:NGVR:S:TX:Y:OL:EP:Z:0:F:M:1:2:3:C:4k" AXE_OPTS, long_options, NULL)) != -1)
 	{
 		//              printf("options %d %c %s\n",opt,opt,optarg);
 		switch (opt)
@@ -793,6 +797,8 @@ void set_options(int argc, char *argv[])
 		case IPV4_OPT:
 		{
 			opts.use_ipv4_only = 1 - opts.use_ipv4_only;
+			if (!opts.use_ipv4_only)
+				LOG0("IPv6 mode is enabled");
 			break;
 		}
 
@@ -843,6 +849,12 @@ void set_options(int argc, char *argv[])
 		case CLEANPSI_OPT:
 		{
 			opts.clean_psi = 1;
+			break;
+		}
+
+		case NO_PIDS_ALL:
+		{
+			opts.emulate_pids_all = 1;
 			break;
 		}
 
@@ -1136,8 +1148,8 @@ void set_options(int argc, char *argv[])
 	info = localtime(&opts.start_time);
 	opts.datetime_start = (char *)malloc1(32);
 	sprintf(opts.datetime_start, "%s ", asctime(info));
-	opts.datetime_start[24]=' ';
-	opts.datetime_start[25]='\0';
+	opts.datetime_start[24] = ' ';
+	opts.datetime_start[25] = '\0';
 
 	opts.datetime_current = (char *)malloc1(32);
 	sprintf(opts.datetime_current, "%s", " ");
@@ -1221,9 +1233,9 @@ int read_rtsp(sockets *s)
 	rlen = s->rlen;
 	s->rlen = 0;
 
-	LOG("Read RTSP (handle %d) [%s:%d] sid %d, len: %d, sock %d", s->sid,
+	LOG("Read RTSP (sock %d, handle %d) [%s:%d] sid %d, len: %d", s->id, s->sock,
 		get_sockaddr_host(s->sa, ra, sizeof(ra)), get_sockaddr_port(s->sa),
-		s->id, rlen, s->sock);
+		s->sid, rlen);
 	LOGM("MSG client >> process :\n%s", s->buf);
 
 	if ((s->type != TYPE_HTTP) && (strncasecmp((const char *)s->buf, "GET", 3) == 0))
@@ -1499,16 +1511,16 @@ int read_http(sockets *s)
 	time(&now);
 	info = localtime(&now);
 	sprintf(opts.datetime_current, "%s ", asctime(info));
-	opts.datetime_current[24]=' ';
-	opts.datetime_current[25]='\0';
+	opts.datetime_current[24] = ' ';
+	opts.datetime_current[25] = '\0';
 
 	double seconds = difftime(now, opts.start_time);
-	int days = seconds/60/60/24;
-	seconds -= days*24*60*60;
-	int hours = seconds/60/60;
-	seconds -= hours*60*60;
-	int mins = seconds/60;
-	seconds -= mins*60;
+	int days = seconds / 60 / 60 / 24;
+	seconds -= days * 24 * 60 * 60;
+	int hours = seconds / 60 / 60;
+	seconds -= hours * 60 * 60;
+	int mins = seconds / 60;
+	seconds -= mins * 60;
 	int secs = seconds;
 	sprintf(opts.time_running, "%.0d%s%02d:%02d:%02d", days, days > 0 ? "d " : "", hours, mins, secs);
 
@@ -1621,8 +1633,8 @@ int close_http(sockets *s)
 		free1(s->buf);
 	s->flags = 0;
 	s->buf = NULL;
-	LOG("Requested sid close %d timeout %d type %d", s->sid,
-		sid ? sid->timeout : -1, sid ? sid->type : -1);
+	LOG("Requested sid close %d timeout %d type %d, sock %d, handle %d, timeout %d", s->sid,
+		sid ? sid->timeout : -1, sid ? sid->type : -1, s->id, s->sock, s->timeout_ms);
 	if (sid && ((sid->type == STREAM_RTSP_UDP && sid->timeout != 0) || (sid->type == 0 && sid->timeout != 0)))
 		// Do not close rtsp udp as most likely there was no TEARDOWN at this point
 		return 0;
