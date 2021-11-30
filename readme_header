@@ -1,12 +1,11 @@
-<a href="https://scan.coverity.com/projects/catalinii-minisatip">
+<a href="https://scan.coverity.com/projects/minisatip2">
   <img alt="Coverity Scan Build Status"
-       src="https://scan.coverity.com/projects/18049/badge.svg"/>
+       src="https://scan.coverity.com/projects/23090/badge.svg"/>
 </a>
-<img alt="Build Status" src="https://travis-ci.org/catalinii/minisatip.svg?branch=master" />
 
 # Welcome to Minisatip
 
-Minisatip is a multi-threaded satip server version 1.2 that runs under Linux and it was tested with DVB-S, DVB-S2, DVB-T, DVB-T2, DVB-C, DVB-C2, ATSC and ISDB-T cards.
+Minisatip is a multi-threaded satip server version 1.2 that runs under Linux and it was tested with DVB-S, DVB-S2, DVB-T, DVB-T2, DVB-C, DVB-C2, ATSC and ISDB-T cards. More details about supported hardware: https://github.com/catalinii/minisatip/blob/master/Supported_Hardware.md
 
 The protocol specification can be found at: 
 http://satip.info/sites/satip/files/resource/satip_specification_version_1_2_2.pdf
@@ -21,12 +20,12 @@ The latest binaries for embedded platforms: https://minisatip.org/forum/viewtopi
 
 Contact
 -------
-Please use https://minisatip.org/forum/ for any questions.
+Please use https://minisatip.org/forum/ for any question or join slack: https://join.slack.com/t/minisatip/shared_invite/zt-rms717g0-SQR25SFs8RH9JlVZV4II7A 
 
 In order to speed up the investigation of an issue, please provide the full log and a link to the application that is not working.
 
 If you like minisatip and you want to support the development of the project please make a donation: 
-https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=7UWQ7FXSABUH8&item_name=minisatip&currency_code=EUR&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHostedGuest
+https://paypal.me/minisatip
 
 Usage:
 -------

@@ -1,12 +1,11 @@
-<a href="https://scan.coverity.com/projects/catalinii-minisatip">
+<a href="https://scan.coverity.com/projects/minisatip2">
   <img alt="Coverity Scan Build Status"
-       src="https://scan.coverity.com/projects/18049/badge.svg"/>
+       src="https://scan.coverity.com/projects/23090/badge.svg"/>
 </a>
-<img alt="Build Status" src="https://travis-ci.org/catalinii/minisatip.svg?branch=master" />
 
 # Welcome to Minisatip
 
-Minisatip is a multi-threaded satip server version 1.2 that runs under Linux and it was tested with DVB-S, DVB-S2, DVB-T, DVB-T2, DVB-C, DVB-C2, ATSC and ISDB-T cards.
+Minisatip is a multi-threaded satip server version 1.2 that runs under Linux and it was tested with DVB-S, DVB-S2, DVB-T, DVB-T2, DVB-C, DVB-C2, ATSC and ISDB-T cards. More details about supported hardware: https://github.com/catalinii/minisatip/blob/master/Supported_Hardware.md
 
 The protocol specification can be found at: 
 http://satip.info/sites/satip/files/resource/satip_specification_version_1_2_2.pdf
@@ -21,36 +20,38 @@ The latest binaries for embedded platforms: https://minisatip.org/forum/viewtopi
 
 Contact
 -------
-Please use https://minisatip.org/forum/ for any questions.
+Please use https://minisatip.org/forum/ for any question or join slack: https://join.slack.com/t/minisatip/shared_invite/zt-rms717g0-SQR25SFs8RH9JlVZV4II7A 
 
 In order to speed up the investigation of an issue, please provide the full log and a link to the application that is not working.
 
 If you like minisatip and you want to support the development of the project please make a donation: 
-https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=7UWQ7FXSABUH8&item_name=minisatip&currency_code=EUR&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHostedGuest
+https://paypal.me/minisatip
 
 Usage:
 -------
 
-minisatip version 1.0.0-32bd1c1, compiled with s2api version: 050B
+minisatip version v1.1.8-24d77e4, compiled in Jun 15 2021 20:36:32, with s2api version: 050B
 
 	./minisatip [-[fgtzE]] [-a x:y:z] [-b X:Y] [-B X] [-H X:Y] [-d A:C-U ] [-D device_id] [-e X-Y,Z] [-i prio] 
-		[-[uj] A1:S1-F1[-PIN]] [-m mac] [-P port] [-l module1[,module2]] [-v module1[,module2]][-o oscam_host:dvbapi_port] [-p public_host] [-r remote_rtp_host] [-R document_root] [-s [*][DELSYS:][FE_ID@][source_ip/]host[:port] [-u A1:S1-F1[-PIN]] [-L A1:low-high-switch] [-w http_server[:port]] 
- 	[-x http_port] [-X xml_path] [-y rtsp_port]
+		[-[uj] A1:S1-F1[-PIN]] [-m mac] [-P port] [-l module1[,module2]] [-v module1[,module2]][-o oscam_host:dvbapi_port,offset] [-p public_host] [-r remote_rtp_host] [-R document_root] [-s [*][DELSYS:][FE_ID@][source_ip/]host[:port] [-u A1:S1-F1[-PIN]] [-L A1:low-high-switch] [-w http_server[:port]] 
+ 	[-x http_port] [-X xml_path] [-y rtsp_port] [-I name_service]
 
 Help
 -------
 
-* -a x:y:z simulate x DVB-S2, y DVB-T2 and z DVB-C adapters on this box (0 means auto-detect)
+* -4 : Force TCP sockets to use IPv6
+
+* -a --adapters x:y:z simulate x DVB-S2, y DVB-T2 and z DVB-C adapters on this box (0 means auto-detect)
 	* eg: -a 1:2:3  
 	- it will report 1 dvb-s2 device, 2 dvb-t2 devices and 3 dvb-c devices 
 
-* -b --buffers X:Y : set the app adapter buffer to X Bytes (default: 72192) and set the kernel DVB buffer to Y Bytes (default: 5775360) - both multiple of 188
+* -G --disable-ssdp disable SSDP announcement
+ 
+* -b --buffer X:Y : set the app adapter buffer to X Bytes (default: 376000) and set the kernel DVB buffer to Y Bytes (default: 5775360) - both multiple of 188
 	* eg: -b 18800:18988
 
 * -B X : set the app socket write buffer to X KB. 
 	* eg: -B 10000 - to set the socket buffer to 10MB
-
-* -2 --tcp-max-pack X : set the TCP data chunk size in MPEG-TS packets (188 bytes), default value is 42
 
 * -d --diseqc ADAPTER1:COMMITTED1-UNCOMMITTED1[,ADAPTER2:COMMITTED2-UNCOMMITTED2[,...]
 	* The first argument is the adapter number, second is the number of committed packets to send to a Diseqc 1.0 switch, third the number of uncommitted commands to sent to a Diseqc 1.1 switch
@@ -73,29 +74,31 @@ Help
 	- note: * as adapter means apply to all adapters
 
 * -E Allows encrypted stream to be sent to the client even if the decrypting is unsuccessful
- 
+ 	- note: when pids=all is emulated this pass NULLs too
+
 * -Y --delsys ADAPTER1:DELIVERY_SYSTEM1[,ADAPTER2:DELIVERY_SYSTEM2[,..]] - specify the delivery system of the adapters (0 is the first adapter)	
 	* eg: --delsys 0:dvbt,1:dvbs
 	- specifies adapter 0 as a DVBT device, adapter 1 as DVB-S, which overrides the system detection of the adapter
-
-* --dmx-source ADAPTER1:FRONTENDX - specifies the frontend number specified as argument for DMX_SET_SOURCE 
-	* eg: --dmx-source 0:1 - enables DMX_SET_SOURCE ioctl call with parameter 1 for adapter 0
 
 * -e --enable-adapters list_of_enabled adapters: enable only specified adapters
 	* eg: -e 0-2,5,7 (no spaces between parameters)
 	- keep in mind that the first adapters are the local ones starting with 0 after that are the satip adapters 
 	if you have 3 local dvb cards 0-2 will be the local adapters, 3,4, ... will be the satip servers specified with argument -s
 
-* -f foreground, otherwise run in background
+* -f foreground: otherwise run in background
 
-* -F --logfile log_file, output the debug/log information to  log_file when running in background (option -f not used), default /tmp/minisatip.log
+* -F --logfile log_file: output the debug/log information to  log_file when running in background (option -f not used), default /tmp/minisatip.log
 
-* -g use syslog instead stdout for logging, multiple -g - print to stderr as well
+* -g --syslog: use syslog instead stdout for logging, multiple -g - print to stderr as well
 
 * -H --threshold X:Y : set the write time threshold to X (UDP) / Y (TCP)  milliseconds. 
 	* eg: -H 5:50 - set thresholds to 5ms (UDP) and 50ms (TCP)
 
+* -I --name-app specificies an alternative Service Name
+
 * -i --priority prio: set the DVR thread priority to prio 
+
+* -k Emulate pids=all when the hardware does not support it, on enigma boxes is enabled by default 
 
 * -l specifies the modules comma separated that will have increased verbosity, 
 	logging to stdout in foreground mode or in /tmp/minisatip.log when a daemon
@@ -110,10 +113,10 @@ Help
 	* eg: -L *:10750-10750-10750 - sets the parameters for Sky NZ LNB using 10750 Mhz
 	* eg: -L 0:10750-10750-10750,1:9750-10600-11700 - adapter 0 has a SKY NZ LNB, adapter 1 has an Universal LNB
 
-* -m xx: simulate xx as local mac address, generates UUID based on mac
+* -m --mac xx: simulate xx as local mac address, generates UUID based on mac
 	* eg: -m 001122334455 
 
-* -M multiplies the strength and snr of the DVB adapter with the specified values
+* -M --multiplier: multiplies the strength and snr of the DVB adapter with the specified values
 	* If the snr or the strength multipliers are set to 0, minisatip will override the value received from the adapter and will report always full signal 100% 
 	* eg: -M 4-6:1.2-1.3 - multiplies the strength with 1.2 and the snr with 1.3 for adapter 4, 5 and 6
 	* eg: -M *:1.5-1.6 - multiplies the strength with 1.5 and the snr with 1.6 for all adapters
@@ -133,7 +136,7 @@ Help
 	* eg: -o /tmp/camd.socket 
 	/tmp/camd.socket is the local socket that can be used 
 
-* -p url: specify playlist url using X_SATIPM3U header 
+* -p --playlist url: specify playlist url using X_SATIPM3U header 
 	* eg: -p http://192.168.2.3:8080/playlist
 	- this will add X_SATIPM3U tag into the satip description xml
 
@@ -192,10 +195,10 @@ Help
 
 * -U --sources sources_for_adapters: limit the adapters to specific sources/positions
 	* eg: -U 0-2:*:3:2,6,8 (no spaces between parameters)
-	- In this example: for SRC=1 only 0,1,2; for SRC=2 all; for SRC=3 only 3; and for SRC=4 the 2,6,8 adapters are used.
+	- In this example: for SRC=1 only 0,1,2; for SRC=2 all: for SRC=3 only 3; and for SRC=4 the 2,6,8 adapters are used.
 	- For each position (separated by : ) you need to declare all the adapters that use this position with no exception.
 	- The special char * indicates all adapters for this position.
-	- The number of sources range from 1 to 64; but the list can include less than 64 (in this case all are enabled for undefined sources). 
+	- The number of sources range from 1 to 64; but the list can include less than 64 (in this case all are enabled for undefined sources).
 	- By default or in case of errors all adapters have enabled all positions.
 
 * -w --http-host http_server[:port]: specify the host and the port (if not 80) where the xml file can be downloaded from [default: default_local_ip_address:8080] 
@@ -225,18 +228,25 @@ Help
 	* The format is: ADAPTER1:PIN,ADAPTER2-ADAPTER4
 			* eg : 0,2-3
 
+* -c --multiple-pmt adapter_list:maximum_number_of_channels_supported: Enable 2 PMTs inside of the same CAPMT to double the number of decrypted channels
+	* The format is: ADAPTER1:MAX_CHANNELS[-CAID1[-CAID2]...,ADAPTER2:MAX_CHANNELS[-CAID3[-CAID4]...]
+			* eg : 0:1-100
+The DDCI adapters 0 will support maximum of 1 CAPMT (2 channels) and will use CAID1. If CAID is not specified it will use CAMs CAIDs
+Official CAMs support 1 or 2 channels, with this option this is extended to 2 or 4
+By default every CAM supports 4 channels
+
 GXAPI
 -----
 * -A --ts-config mapping_num: set a 5-bit mask in decimal. (default: 0)
 	* bit 0   - 0 - TS parallel interface, 1 - TS serial interface
 	* bit 1   - select TS; 0 - FRONTEND, 1 - OTHER
-	* bit 2-3 - input TS; 0 - DEMUX_TS1, 1 - DEMUX_TS2, 2 - DEMUX_TS3
+	* bit 2-3 - input TS; 0 - DEMUX_TS1, 1 - DEMUX_TS2, 2 - DEMUX_TS3,
 	*           3 - DEMUX_SDRAM
 	* eg: -A 5, set TS serial and DEMUX_TS2
 	* bit 5   - use for Combo receiver (16 + 4 bits)
 	* eg: -A 21, (16 + 5), set TS serial and DEMUX_TS2 for external demod
 
-* -8 --no-dvr-verify ignore check work DVR socket.
+* -Q --no-dvr-verify ignore check work DVR socket.
 
 How to compile:
 ------
